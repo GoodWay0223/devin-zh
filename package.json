@@ -1,0 +1,16 @@
+{
+  "name": "devin-desktop-zh",
+  "version": "0.1.0",
+  "description": "Devin Desktop 桌面端(Agent 窗口 / 聊天面板 / 编辑器框架)简体中文汉化补丁",
+  "private": true,
+  "license": "MIT",
+  "bin": { "devin-zh": "src/cli.js" },
+  "scripts": {
+    "apply": "node src/cli.js apply",
+    "restore": "node src/cli.js restore",
+    "status": "node src/cli.js status",
+    "translate": "node src/cli.js translate",
+    "translate-strings": "node src/cli.js translate-strings",
+    "strings": "node src/cli.js strings"
+  }
+}
