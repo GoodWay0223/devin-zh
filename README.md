@@ -40,17 +40,23 @@ Devin 的 VS Code 版本见 `resources/app/package.json` 的 `version` (当前 1
 ## 目录
 
 ```
-src/cli.js        命令入口 (apply / restore / status / translate / translate-strings / strings)
+src/cli.js        命令入口 (apply / restore / status / translate / translate-strings / strings / prune)
+src/rules.js      规则翻译: 工具调用标签 "Listing automations" 等 动词+名词 句式
+src/blocks.js     判断 i18n 资源块是否英文 (文件内还有 es/pt/ja 块)
+src/dump.js       导出某命名空间下未翻译条目, 便于人工翻译
+src/check.js      校验译文占位符/标签是否与原文一致
 src/core.js       备份/标记、i18n 资源块解析、词典装载、语法校验
 src/nls.js        VS Code nls.messages 汉化
 src/mt.js         机翻 (Google gtx, 经 curl) + 占位符保护 + 术语表
 data/web-dictionary.js   KawaYiLab/Devin-Web-Chinese 词典 (MIT), 精校的网页端词条
 data/glossary.json       术语表 (机翻前强制替换, 保证全局统一)
+data/strings/*.json     人工: 整句英文 -> 中文 (分文件存放, 与 strings.json 合并)
 data/strings.json        人工: 整句英文 -> 中文 (最高优先级之一, 同时作用于 i18n 与硬编码文本)
 data/i18n.zh.json        人工: 按 key 路径精校  { "路径": { "英文原文": "中文" } }
 data/i18n.mt.json        机翻草稿 (i18n 资源), 可随时重新生成
 data/strings.mt.json     机翻草稿 (硬编码文本)
-data/nls.json            人工: VS Code 原生文案覆盖  { "英文原文": "中文" }
+data/nls.json            人工: VS Code 原生文案 **强制**覆盖  { "英文原文": "中文" }
+data/nls/*.json          人工: 官方语言包没有覆盖到的 Devin 专有文案  { "英文原文": "中文" }
 ```
 
 ### 翻译优先级
