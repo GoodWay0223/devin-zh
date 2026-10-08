@@ -1,0 +1,59 @@
+# Devin 网页油猴汉化
+
+网页脚本版本 1.0.9，项目工具版本 0.3.3。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
+
+## 首次安装
+
+启用 [Tampermonkey](https://www.tampermonkey.net/) 后，打开[可安装的脚本](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)确认安装；也可以下载 [Release](https://github.com/GoodWay0223/devin-zh/releases/latest) 的 `.user.js`，将全文粘贴到新脚本编辑器并保存，然后刷新 Devin。首次安装不需要 Node.js。
+
+## 更新现有油猴脚本
+
+1. 保留原版导出文件，用于恢复。进入油猴管理面板，打开现有“Devin 网页端汉化”。
+2. 下载发布版脚本，或在项目根目录构建后打开 `web/dist/Devin-Web-Zh.user.js`，复制全部内容；在原脚本编辑器中全选、替换，再按 Ctrl+S 保存。
+3. 确认脚本版本显示 1.0.9，刷新 Devin 网页。每个页面只启用一份汉化脚本，避免同时运行旧版和新版。
+4. 若发现问题，将原版备份内容全选替换回原脚本，保存并刷新，即可恢复。也可暂时关闭该脚本。
+
+保留原来的 `@name/@namespace` 以维护同一脚本。保留 `@grant none`，限定到 `app.devin.ai` 与 `app.beta.devin.ai`，不申请新权限，不请求翻译服务，不读取账户凭据，不发送页面或聊天内容。运行时代码只修改显示文字及 `placeholder/title/aria-label/alt/data-placeholder`，不改变输入值、URL、ID、开关状态或按钮回调。
+
+本地版本设置 `@downloadURL none` / `@updateURL none`，由项目手动维护，避免上游自动更新覆盖本地修改。`@downloadURL none` 的含义见 [Tampermonkey 官方文档](https://www.tampermonkey.net/documentation.php?locale=zh_CN)。如将来要恢复上游自动更新，先合并本地修改并重新验证，不要直接换回旧脚本头。
+
+## 共用词典及复用流程
+
+- `data/web-dictionary.js`：1194 条原有精确词条与 91 条规则，保留原样。
+- `data/display.zh.json`：共用客户端导航/菜单词条。
+- `data/web-reviewed.zh.json`：本次从实机网页和截图核对的新增及修订文案。
+- `data/web-shortcuts.zh.json`：实际键盘快捷键页的 60 条文案。
+- `data/web-settings.zh.json`：组织及个人设置页的增量文案，含智能体、SSH、PR 权限、审查排除规则、语言及迁移提示。
+- `data/web-regex.zh.json`：11 条锚定的相对时间/工作时长规则。
+- `web/runtime.js`：网页 DOM 引擎，动态属性监听、分批处理、保护内容；构建时序列化进单文件。
+- `src/core.js`：客户端也读取三份人工新增词典，仍需经过客户端结构/占位符检查。
+
+在项目根目录运行：
+
+```powershell
+npm test
+npm run build:userscript
+node web/serve-fixture.js
+```
+
+`build:userscript` 离线生成脚本和带 SHA-256 的报告，不修改安装中的 Devin，也不修改 Chrome/油猴存储。`serve-fixture.js` 输出本地地址，使用浏览器打开执行实际 DOM 回归；修改运行时代码后要重启该验证服务并重新加载页面。
+
+Devin 网页更新后，已有精确词条及动态监听继续复用。新文案维护到人工词典、执行检查并重新生成；未知内容保持原文。没有承诺任意未来页面无需适配。
+
+客户端更新仍按根目录 `UPDATE_GUIDE.md`：新版本原版验证 → doctor → prepare → 测试 → 退出客户端 → apply → 启动检查。本轮只生成客户端 Web 准备结果，没有把新词典重新写入正在运行的客户端。网页脚本不会自动安装进桌面客户端的跨源 iframe；没有修改主进程、预加载脚本、沙箱、认证或官方完整性校验。
+
+## 实际验证及覆盖边界
+
+已用用户登录的 Chrome 核对：首页、会话工具栏、桌面云端设置 Local Settings/Sharing、偏好设置、键盘快捷键、自定义 Plugins/Hooks/Memory、自动化、Wiki、Review、安全 Scans/Profiles，以及侧栏 Properties 菜单。只打开/读取页面及菜单，没有发消息、运行扫描、创建资源、改隐私开关或保存账户设置。Models 页当前没有加载出可用列表，未宣称已检查其所有内容。详情弹窗及未来新页面不属于全覆盖承诺。
+
+独立浏览器验证页执行 50 项实际 DOM 检查，包括动态文本/属性、新节点、1200 个动态按钮、输入/Slate 草稿、快捷键、正文/代码/终端、会话及 PR 标题、未知普通值、文件标签、按钮事件与开关状态；新增设置侧栏覆盖链接的相邻显示文字、分组标题、动态重渲染、选项内部值、权限说明、真实禁翻输入框占位重渲染、自动化名称保护和 PR 卡片操作提示。项目测试共 58 项通过；生成脚本语法检查通过。**这不是新版已安装后的 Devin 页面验收**。
+
+1.0.9 另外使用登录 Chrome 只读核对组织首页、General、Devin、Review、DeepWiki、Schedules、Connections、Desktop、Environment、Knowledge、Playbooks，以及个人 Preferences。修复设置侧栏链接与可见标签互为相邻元素导致的漏翻；只接受单一已识别界面链接的行，不把所有侧栏内容当作固定界面。单词选项在 `combobox` 中可翻译，隐藏输入的原始值保持不变。语言名称在真实 `label` 结构中翻译；键名 Enter/Ctrl、品牌和文件模式保持原样。Profiles/Create profile 改用“配置方案”，避免共用文案被限定为扫描配置。详情弹窗、未打开的子页及未确认单位文本仍可能保留英文。
+
+按用户追加要求，又从 `https://app.devin.ai/` 起巡查首页 Agent/Ask 和配置/智能体/帮助入口、自动化与元数据筛选、安全扫描筛选及安全自动化空状态、PR 列表操作菜单、Wiki 列表筛选、自定义 Plugins/Skills/MCPs/Hooks/Rules/Memory。新增对应说明、搜索及空状态文案；只打开菜单和页面，未执行生成、扫描、PR 操作、创建/安装资源或账户保存。首页输入框本身 `translate="no"`，仅对带有真实 Devin/Slate 标记的不可编辑占位元素放行，草稿、代码和未知禁翻结构仍保持原文。PR 链接内仅放行已确认的“More actions”按钮描述属性；标题与链接不变。自动化详情链接里的用户自定义名称也受保护。
+
+客户端仍保留旧人工词典的优先级，因此 `Normal` 在通用客户端词典为“普通”、网页为“常规”；`Bug` 在客户端保留 Bug、网页审查设置为“缺陷”。共用增量来源不会覆盖客户端已有人工约定。
+
+跨域 iframe、远程电脑画面、Shadow DOM 不自动遍历。`.prose-main` 等正文、已识别消息正文、编辑器、代码、终端、记忆文件内容、链接内会话/PR/自动化标题和未知普通单词值受保护。无法确认的名字或结构保留英文，因此可能有少量界面短词保留原文；后续以真实 DOM 证据补充范围，不改业务数据。
+
+`Stage quote caption` / `New review chat mention` 等快捷键描述采用保守直译，具体交互未触发验证。品牌和模型名称保持原文。

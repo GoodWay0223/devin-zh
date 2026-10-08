@@ -1,0 +1,13 @@
+[
+  {"pattern":"^(\\d+)s\\s+ago$","flags":"i","replacement":"$1 秒前"},
+  {"pattern":"^(\\d+)m\\s+ago$","flags":"i","replacement":"$1 分钟前"},
+  {"pattern":"^(\\d+)h\\s+ago$","flags":"i","replacement":"$1 小时前"},
+  {"pattern":"^(\\d+)d\\s+ago$","flags":"i","replacement":"$1 天前"},
+  {"pattern":"^Working for\\s+(\\d+)s$","flags":"i","replacement":"已工作 $1 秒"},
+  {"pattern":"^Working for\\s+(\\d+)m$","flags":"i","replacement":"已工作 $1 分钟"},
+  {"pattern":"^Working for\\s+(\\d+)m\\s+(\\d+)s$","flags":"i","replacement":"已工作 $1 分 $2 秒"},
+  {"pattern":"^Working for\\s+(\\d+)h\\s+(\\d+)m$","flags":"i","replacement":"已工作 $1 小时 $2 分钟"},
+  {"pattern":"^Working for\\s+(\\d+)秒$","flags":"i","replacement":"已工作 $1 秒"},
+  {"pattern":"^Working for\\s+(\\d+)分钟$","flags":"i","replacement":"已工作 $1 分钟"},
+  {"pattern":"^Working for\\s+(\\d+)分\\s*(\\d+)秒$","flags":"i","replacement":"已工作 $1 分 $2 秒"}
+]

@@ -1,78 +1,126 @@
-# Devin Desktop 汉化补丁 (devin-desktop-zh)
+# Devin 简体中文汉化
 
-给 **Devin Desktop**(原 Windsurf)桌面端打简体中文补丁。零依赖, 只需要 Node.js。
+[![检查](https://github.com/GoodWay0223/devin-zh/actions/workflows/ci.yml/badge.svg)](https://github.com/GoodWay0223/devin-zh/actions/workflows/ci.yml)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![下载](https://img.shields.io/github/v/release/GoodWay0223/devin-zh)](https://github.com/GoodWay0223/devin-zh/releases/latest)
 
-## 它汉化什么
+让 Devin 网页端和 Windows Desktop 的本地 Agent 界面使用简体中文。两个入口共用人工词典，分别采用网页显示层翻译和客户端语法树补丁；提供源码、可安装的油猴脚本，以及带检查和回滚功能的客户端汉化工具。
 
-| 层 | 文件 | 方式 | 来源 |
-|---|---|---|---|
-| Agent/聊天面板里的 Web 应用文案 (i18next 资源, 约 1.2 万条) | `out/vs/workbench/windsurf-chat-client/index.js` | 按 key 路径替换 `JSON.parse('{...}')` 资源块 | 词典 + 机翻草稿 + 人工校对 |
-| Agent 窗口里硬编码的按钮/提示/工具调用标签 | `out/vs/sessions/sessions.desktop.main.js`、上面的 chat-client | 在 `children/label/title/placeholder/...` 等"给人看的属性"里做精确字符串替换 | 同上 |
-| VS Code 原生界面 (菜单、设置、面板、命令, 约 2 万条) | `out/nls.messages.js/.json` | 用官方 `zh-hans` 语言包按 `nls.keys.json` 重建 | 微软官方翻译 |
+这是社区维护项目，与 Devin / Cognition 官方无隶属关系。
 
-不会改动任何代码逻辑, 只替换展示用文本。所有被改的文件都先备份为 `*.bak-zh`。
+| 入口 | 当前版本 | 使用方式 |
+| --- | --- | --- |
+| **网页油猴脚本** | **1.0.9** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **0.3.3** | 指定官方安装目录，检查、准备补丁，退出客户端后应用 |
 
-## 用法
+**[下载最新发布版](https://github.com/GoodWay0223/devin-zh/releases/latest)** · [网页使用与维护](web/README.md) · [客户端详细安装](docs/desktop.md) · [Devin 更新后重新汉化](UPDATE_GUIDE.md)
 
-```bash
-cd devin-zh
-node src/cli.js apply     # 汉化 (幂等, 可重复执行); 然后完全退出并重开 Devin Desktop
-node src/cli.js restore   # 还原成原版
-node src/cli.js status    # 查看翻译覆盖率 / 当前是否已汉化
+## 网页端：安装油猴脚本
+
+适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
+
+1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.9.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
+
+覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,552 条精确词条、102 条规则**；相较原版 1.0.7 新增 358 条词条并修订 9 条译文。
+
+翻译在浏览器本地完成，脚本使用 `@grant none`，没有翻译服务请求。保护聊天正文、代码、终端、输入草稿以及会话、PR 和自动化的自定义名称；只处理能够确认的界面文字和描述属性。新页面或未知结构可能保留英文。
+
+**更新采用手动安装。** 保留原版的脚本名称及 namespace 以方便替换，关闭上游自动更新，避免覆盖本项目的修改。更新时从本仓库或 Releases 取得新脚本，替换、保存、刷新；停用脚本即可撤销网页汉化。
+
+## 客户端：汉化本地 Agent 界面
+
+需要 **Windows、Node.js 22+、正常工作的官方 Devin Desktop**。下载发布页的 `devin-desktop-zh-0.3.3.zip` 并解压，进入其中的 `devin-zh` 文件夹；也可以克隆源码：
+
+```powershell
+git clone https://github.com/GoodWay0223/devin-zh.git
+Set-Location devin-zh
+npm ci --ignore-scripts
+
+# 替换为自己机器上真实的 resources\app 目录，不是 Devin.exe
+$env:DEVIN_APP = 'D:\Apps\Devin\resources\app'
+node src/cli.js status
+node src/cli.js doctor
+
+# 仅本地 Agent / 聊天界面，不需要另外安装微软语言包
+node src/cli.js prepare --scope=web
+npm test
 ```
 
-环境变量 `DEVIN_APP` 可指定安装目录 (默认 `D:/AI/Devin/resources/app`)。
+`doctor` 同时检查 Agent 结构和可选 NLS 语言包。若只有 NLS 包缺失或不匹配，可先使用 `--scope=web`；原版校验失败或未知安装修改必须先解决。准备命令会输出 `report.json` 路径，创建本机构建的原版备份，但不会覆盖客户端。
 
-**Devin 更新后**界面会变回英文 (文件被覆盖), 重新运行 `apply` 即可。补丁会自动识别"这是新版原文件", 刷新备份。
+查看报告后，保存工作并**完全退出 Devin**，将刚生成的真实报告路径填入：
 
-### 首次准备 (官方语言包)
-
-VS Code 原生部分需要微软的简体中文语言包翻译数据, 放在 `cache/zh/` (已 gitignore):
-
-```bash
-mkdir -p cache && cd cache
-curl -L -o zh.vsix "https://open-vsx.org/api/MS-CEINTL/vscode-language-pack-zh-hans/<与 Devin 的 VS Code 版本一致>/file/MS-CEINTL.vscode-language-pack-zh-hans-<版本>.vsix"
-unzip zh.vsix -d zh
+```powershell
+$preparedReport = '刚生成的 report.json 的完整路径'
+node src/cli.js apply --prepared="$preparedReport"
 ```
 
-Devin 的 VS Code 版本见 `resources/app/package.json` 的 `version` (当前 1.126.0)。
+重新打开 Devin，检查会话、输入框及模式菜单。工具不会替你关闭正在运行的客户端；检测到对应进程时拒绝写入。
 
-## 目录
+编辑器菜单及框架汉化需要另行取得与客户端内 **VS Code major/minor 匹配**的微软中文语言包，设置 `DEVIN_ZH_PACK`，再 `prepare --scope=all`。完整步骤见[客户端指南](docs/desktop.md)。工具包不附带 Devin 程序、微软语言包或本机缓存。
 
-```
-src/cli.js        命令入口 (apply / restore / status / translate / translate-strings / strings / prune)
-src/rules.js      规则翻译: 工具调用标签 "Listing automations" 等 动词+名词 句式
-src/blocks.js     判断 i18n 资源块是否英文 (文件内还有 es/pt/ja 块)
-src/dump.js       导出某命名空间下未翻译条目, 便于人工翻译
-src/check.js      校验译文占位符/标签是否与原文一致
-src/core.js       备份/标记、i18n 资源块解析、词典装载、语法校验
-src/nls.js        VS Code nls.messages 汉化
-src/mt.js         机翻 (Google gtx, 经 curl) + 占位符保护 + 术语表
-data/web-dictionary.js   KawaYiLab/Devin-Web-Chinese 词典 (MIT), 精校的网页端词条
-data/glossary.json       术语表 (机翻前强制替换, 保证全局统一)
-data/strings/*.json     人工: 整句英文 -> 中文 (分文件存放, 与 strings.json 合并)
-data/strings.json        人工: 整句英文 -> 中文 (最高优先级之一, 同时作用于 i18n 与硬编码文本)
-data/i18n.zh.json        人工: 按 key 路径精校  { "路径": { "英文原文": "中文" } }
-data/i18n.mt.json        机翻草稿 (i18n 资源), 可随时重新生成
-data/strings.mt.json     机翻草稿 (硬编码文本)
-data/nls.json            人工: VS Code 原生文案 **强制**覆盖  { "英文原文": "中文" }
-data/nls/*.json          人工: 官方语言包没有覆盖到的 Devin 专有文案  { "英文原文": "中文" }
+### 完整性提示与恢复
+
+本地 Agent 汉化会修改官方校验覆盖的两份界面脚本，因而可能出现 **“Devin 安装似乎损坏。请重新安装。”** 通知。工具保留官方校验值，通过 `status` 区分已验证补丁和未知修改，不关闭完整性检查。
+
+需要恢复时，完全退出 Devin，在同一项目目录执行：
+
+```powershell
+node src/cli.js restore   # 恢复当前构建的四个目标文件
+node src/cli.js status
 ```
 
-### 翻译优先级
+操作中断时先用 `node src/cli.js recover` 恢复写入前状态。保留本地 `cache/installations/`，其中有可信原版、状态和操作备份；不要把其他版本的旧补丁、旧报告或 `.bak-zh` 覆盖到新版安装。
 
-- i18n 资源: `i18n.zh.json[路径]` > `strings.json` > `web-dictionary.js` > `i18n.mt.json[路径]`
-- 硬编码文本: `strings.json` > `web-dictionary.js` > `strings.mt.json`
-- VS Code 原生: `nls.json` > 官方语言包
+## 更新后能否继续复用？
 
-## 维护流程
+**词典和工具流程可以复用，客户端补丁必须按新构建重新生成。**
 
-1. 发现还是英文 / 译错的地方 -> 在 `data/strings.json` 加一条 `"English": "中文"` (整句精确匹配, 最省事); 同一英文在不同位置要不同译法时, 用 `i18n.zh.json` 按路径写。
-2. `node src/cli.js apply` -> 重启 Devin 验证。
-3. Devin 更新后: `apply`; 再 `node src/cli.js status` / `strings` 看有没有新增的未翻译条目; 需要时 `translate` / `translate-strings` 补机翻草稿 (有限流, 会自动退避等待), 再人工校对。
+- **网页更新**：精确词典及动态监听继续工作；漏翻需要核对真实界面，补充词典并重新构建。跨域 iframe、远程电脑画面和 Shadow DOM 不自动翻译。
+- **客户端更新**：先确认新版官方程序能启动，再 `doctor` → `prepare` → 检查报告和测试 → 退出 → 应用新报告 → 启动验收。新构建单独保存原版，旧工具版本的报告会被拒绝。
+- **结构变化**：解析器无法确认 React、语言资源或展示位置时停止或保留英文。需要适配源码，不能依靠全局替换提高覆盖率。未来任意版本无需维护不在承诺范围内。
 
-## 注意
+网页脚本与客户端共享导航/菜单和人工补充词典，但客户端本地 Agent 与内嵌云端网页属于不同来源；当前没有向客户端跨源网页注入油猴脚本。
 
-- 补丁修改了安装目录里的文件, 可能出现"安装似乎已损坏"提示, 可忽略。
-- 机翻只是草稿 (已做 `{{变量}}`、`<0>标签</0>`、专有名词保护与校验, 校验失败的保持英文)。
-- 词典来源: [KawaYiLab/Devin-Web-Chinese](https://github.com/KawaYiLab/Devin-Web-Chinese) (MIT)。
+## 验证记录
+
+截至 2026-10-08：
+
+| 检查 | 结果与边界 |
+| --- | --- |
+| 项目回归测试 | 58 项，覆盖翻译契约、显示/内部值分离、未知结构拒绝、安装指纹、事务恢复和路径配置 |
+| 网页 DOM 回归 | 独立浏览器验证页 50 项通过，包含动态属性、1,200 个动态按钮、Slate 草稿及名称保护；不是新版安装后的全站验收 |
+| 登录态网页检查 | 只读巡查首页、模式和菜单、自动化、安全、审查、知识库、自定义及组织/个人设置；没有触发生成、扫描或账户保存 |
+| 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
+| 本次客户端工具 | 0.3.3 对同一构建通过兼容检查及准备报告检查；新增词典尚未实机应用后再次启动验收 |
+
+检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
+
+## 开发与维护
+
+```powershell
+npm ci --ignore-scripts
+npm test
+npm run build:userscript  # 输出到 web/dist/，附 SHA-256 报告
+node web/serve-fixture.js # 打开打印的本地地址执行真实 DOM 回归
+```
+
+| 文件/目录 | 职责 |
+| --- | --- |
+| `data/display.zh.json` | 两端共用导航、模式与菜单显示词典 |
+| `data/web-reviewed.zh.json`、`web-shortcuts.zh.json`、`web-settings.zh.json` | 网页人工补充，客户端也读取并检查 |
+| `data/strings/`、`data/i18n.zh.json`、`data/nls/` | 客户端人工词条、按路径资源和框架补充 |
+| `web/runtime.js`、`web/build.js` | 网页显示层引擎及单文件构建 |
+| `src/analyze.js`、`runtime.js`、`patch.js` | 语法树识别、React 来源证明和客户端补丁 |
+| `src/install.js`、`compatibility.js` | 原版验证、事务、回滚与版本兼容 |
+| `dist/Devin-Web-Zh.user.js` | 可直接安装的发布副本，由源码生成 |
+
+既有机翻词典仅作为离线草稿，常规构建/应用不调用在线机翻。贡献译文或适配新版本请看 [CONTRIBUTING.md](CONTRIBUTING.md)。发布脚本会检查不应上传的文件、凭据和生成结果，CI 比较生成脚本，标签发布自动生成两种下载包及 `SHA256SUMS`。
+
+## 来源与许可证
+
+本项目采用 [MIT License](LICENSE)。网页初始词典及原始脚本来自 [KawaYiLab/Devin-Web-Chinese](https://github.com/KawaYiLab/Devin-Web-Chinese) 1.0.7，保留不可变副本及[原作者完整 MIT 许可](LICENSES/KawaYiLab-Devin-Web-Chinese-MIT.txt)。第三方声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+
+问题与漏翻可提交到 [Issues](https://github.com/GoodWay0223/devin-zh/issues)，附版本、界面位置、英文原文和复现步骤；日志和截图请先移除密钥、私有项目及会话内容。

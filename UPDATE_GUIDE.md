@@ -1,0 +1,23 @@
+# 更新 Devin 后如何重新汉化
+
+项目词典可以长期复用；安装补丁必须从更新后的官方原文件重新生成。当前实机验证为 Devin 3.10.48 / VS Code 1.126.0，其他版本需要先检查兼容性。
+
+1. 正常完成 Devin 官方更新，先打开一次确认原版能启动。不要把旧版脚本或旧 `.bak-zh` 复制到新版。
+2. 在项目目录运行 `node src/cli.js doctor`。这个命令只读，核对安装完整性、React/语言资源结构及 NLS 语言包。
+3. 检查通过后运行 `node src/cli.js prepare`，记录命令打印的新 `report.json` 路径。若只缺少或不匹配可选 NLS 语言包，使用 `node src/cli.js prepare --scope=web` 先生成 Agent 界面补丁。检查报告的翻译数量、兼容信息及被拒绝译文；然后运行 `npm test`。
+4. 完全退出 Devin，再运行 `node src/cli.js apply --prepared="新报告的完整路径"`。
+5. 打开 Devin，核对会话列表、聊天输入框和模式菜单。运行 `node src/cli.js status` 可区分已记录的汉化差异与未知修改。
+
+其他机器首次使用运行 `npm ci --ignore-scripts` 安装锁定的 Acorn。首次使用或更换安装位置设置 `$env:DEVIN_APP = 'D:\安装位置\resources\app'`，替换为真实路径。项目不包含微软语言包，NLS 安装说明见 [客户端指南](docs/desktop.md)。升级本项目时保留原有本地 `cache/installations/`；不要以删除缓存的方式更新工具。
+
+## 检查不通过时
+
+- **原文件校验失败或未知修改**：停止汉化。确认官方更新已完整完成；需要恢复时使用当前版本的官方文件，不能套旧备份。
+- **找不到可信 React、语言资源或模式组件结构**：结构变了，需要维护识别器。不要扩大成全局文本替换。模式组件不符合契约时可以保持该部分英文。
+- **VS Code 次版本与语言包不匹配**：取得相同 major/minor 的微软简体中文语言包，解压后保留 `extension/package.json`；设置 `$env:DEVIN_ZH_PACK = 'D:\已解压语言包\extension\translations\main.i18n.json'`，再检查。暂未适配时可以 `prepare --scope=web` 仅生成聊天界面补丁。
+- **旧报告被拒绝**：安装或工具版本已变，重新 `prepare`。不能手改报告指纹绕过检查。
+- **应用中断**：先运行 `node src/cli.js recover`。恢复过程只接受日志中记录的文件状态，遇到后来出现的未知修改会停止。
+
+运行 `node src/cli.js restore` 可恢复当前构建的四个目标文件。每个构建的原版及应用前备份保存在 `cache/installations/`，不要删除或手动覆盖。
+
+完整汉化改动官方校验覆盖的界面脚本，因此“安装似乎损坏”通知仍可能出现。项目保留官方校验值，不关闭校验。这里的兼容检查与模拟更新测试降低误用旧补丁的风险，不能替代新版本实机启动和界面验收。

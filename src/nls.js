@@ -1,54 +1,144 @@
-// VS Code 原生界面文本 (菜单/设置/面板等): 用官方 zh-hans 语言包生成中文 nls.messages
-const fs = require('fs'), path = require('path');
-const C = require('./core');
+// Build NLS changes from verified originals. Installation and rollback belong to the caller.
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
 
-const dir = () => path.join(C.ROOT, 'out');
-const JS = () => path.join(dir(), 'nls.messages.js'), JSON_ = () => path.join(dir(), 'nls.messages.json'), KEYS = () => path.join(dir(), 'nls.keys.json');
-const PACK = path.join(__dirname, '..', 'cache', 'zh', 'extension', 'translations', 'main.i18n.json');
+const JS = 'out/nls.messages.js';
+const JSON_FILE = 'out/nls.messages.json';
+const DEFAULT_DATA = path.join(__dirname, '..', 'data');
+const DEFAULT_PACK = process.env.DEVIN_ZH_PACK || path.join(__dirname, '..', 'cache', 'zh', 'extension', 'translations', 'main.i18n.json');
+const own = (object, key) => object != null && Object.prototype.hasOwnProperty.call(object, key);
+const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-const isPatched = () => fs.readFileSync(JS(), 'utf8').endsWith(C.MARK);
-
-// 保证备份对应当前版本的原版 (被 Devin 更新覆盖后会自动刷新)
-function ensureBackup() {
-  if (!isPatched()) for (const f of [JS(), JSON_()]) fs.copyFileSync(f, f + '.bak-zh');
+function readObject(file, optional = false) {
+  if (optional && !fs.existsSync(file)) return Object.create(null);
+  const value = JSON.parse(fs.readFileSync(file, 'utf8'));
+  if (!object(value)) throw new Error(`NLS dictionary must be an object: ${file}`);
+  return value;
 }
 
-function build() {
-  const keys = JSON.parse(fs.readFileSync(KEYS(), 'utf8'));
-  const orig = JSON.parse(fs.readFileSync(JSON_() + '.bak-zh', 'utf8'));
-  const pack = JSON.parse(fs.readFileSync(PACK, 'utf8')).contents;
-  const force = C.readJson(C.dataFile('nls.json')), manual = {};
-  const dir = C.dataFile('nls');
-  if (fs.existsSync(dir)) for (const f of fs.readdirSync(dir).sort()) if (f.endsWith('.json')) Object.assign(manual, C.readJson(path.join(dir, f)));
-  const out = orig.slice(); let i = 0, hit = 0;
-  for (const [mod, ks] of keys) {
-    const t = pack[mod] || {};
-    for (const k of ks) {
-      const zh = t[k];
-      if (typeof zh === 'string' && zh && out[i] !== undefined) { out[i] = zh; hit++; }
-      i++;
+function messagesFromJS(source) {
+  const sandbox = Object.create(null);
+  vm.runInNewContext(source, sandbox, { timeout: 1000, contextCodeGeneration: { strings: false, wasm: false } });
+  if (!Array.isArray(sandbox._VSCODE_NLS_MESSAGES) || sandbox._VSCODE_NLS_MESSAGES.some(value => typeof value !== 'string')) {
+    throw new Error('NLS JavaScript must produce a string array in globalThis._VSCODE_NLS_MESSAGES');
+  }
+  return Array.from(sandbox._VSCODE_NLS_MESSAGES);
+}
+
+// Locate the assignment's literal, respecting quoted strings and comments; retain all other code.
+function arrayRange(source) {
+  const matches = Array.from(source.matchAll(/(?:globalThis\.)?_VSCODE_NLS_MESSAGES\s*=\s*(\[)/g));
+  if (matches.length !== 1) throw new Error('NLS JavaScript requires exactly one messages array assignment');
+  const start = matches[0].index + matches[0][0].length - 1;
+  let depth = 0, quote = '', escaped = false, comment = '';
+  for (let i = start; i < source.length; i++) {
+    const char = source[i], next = source[i + 1];
+    if (comment === '//') { if (char === '\n' || char === '\r') comment = ''; continue; }
+    if (comment === '/*') { if (char === '*' && next === '/') { comment = ''; i++; } continue; }
+    if (quote) {
+      if (escaped) escaped = false;
+      else if (char === '\\') escaped = true;
+      else if (char === quote) quote = '';
+      continue;
+    }
+    if (char === '"' || char === "'") { quote = char; continue; }
+    if (char === '/' && (next === '/' || next === '*')) { comment = char + next; i++; continue; }
+    if (char === '[') depth++;
+    else if (char === ']' && --depth === 0) return { start, end: i + 1 };
+  }
+  throw new Error('NLS messages array literal is unterminated');
+}
+
+function signature(value, expression) {
+  return JSON.stringify((value.match(expression) || []).sort());
+}
+
+function translationProblem(original, translated) {
+  if (typeof translated !== 'string' || !translated) return 'type-or-empty';
+  if (signature(original, /\{\{[^{}]*\}\}|\{\d+\}/g) !== signature(translated, /\{\{[^{}]*\}\}|\{\d+\}/g)) return 'placeholders';
+  if (signature(original, /<\/?[A-Za-z][^<>]*>/g) !== signature(translated, /<\/?[A-Za-z][^<>]*>/g)) return 'markup';
+  // Markdown link destinations and code delimiters are structural; labels may be translated.
+  if (signature(original, /\]\([^)]*\)/g) !== signature(translated, /\]\([^)]*\)/g)) return 'markup';
+  if (signature(original, /`+/g) !== signature(translated, /`+/g)) return 'markup';
+  return null;
+}
+
+function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_PACK } = {}) {
+  if (typeof root !== 'string' || !(originals instanceof Map)) throw new TypeError('NLS prepare requires root and originals Map');
+  for (const relative of [JS, JSON_FILE]) {
+    if (!originals.has(relative) || typeof originals.get(relative) !== 'string') throw new Error(`NLS original missing: ${relative}`);
+  }
+  if (!fs.existsSync(packFile)) {
+    const error = new Error(`NLS language pack missing: ${packFile}`);
+    error.code = 'NLS_PACK_MISSING';
+    throw error;
+  }
+  const appPackage = path.join(root, 'package.json');
+  const packPackage = path.join(path.dirname(packFile), '..', 'package.json');
+  if (!fs.existsSync(appPackage)) throw new Error('NLS app version metadata missing: ' + appPackage);
+  if (!fs.existsSync(packPackage)) throw new Error('NLS language pack version metadata missing: ' + packPackage);
+  {
+    const appVersion = readObject(appPackage).version;
+    const packVersion = readObject(packPackage).version;
+    if (typeof appVersion !== 'string' || typeof packVersion !== 'string' || appVersion.split('.').slice(0, 2).join('.') !== packVersion.split('.').slice(0, 2).join('.')) {
+      throw new Error(`NLS language pack version ${packVersion} does not match app ${appVersion}`);
     }
   }
-  // 手写词条只补官方语言包没有覆盖的; nls.json 里的是强制覆盖
-  for (let j = 0; j < out.length; j++) {
-    if (force[orig[j]] !== undefined) out[j] = force[orig[j]];
-    else if (out[j] === orig[j] && manual[orig[j]] !== undefined) out[j] = manual[orig[j]];
+  const jsOriginal = originals.get(JS);
+  const orig = JSON.parse(originals.get(JSON_FILE));
+  if (!Array.isArray(orig) || orig.some(value => typeof value !== 'string')) throw new Error('NLS JSON must contain only strings');
+  if (JSON.stringify(messagesFromJS(jsOriginal)) !== JSON.stringify(orig)) throw new Error('NLS JavaScript and JSON originals disagree');
+  const range = arrayRange(jsOriginal);
+  const literal = vm.runInNewContext(`(${jsOriginal.slice(range.start, range.end)})`, Object.create(null), { timeout: 1000 });
+  if (JSON.stringify(literal) !== JSON.stringify(orig)) throw new Error('NLS array literal does not match JSON originals');
+  const keys = JSON.parse(fs.readFileSync(path.join(root, 'out', 'nls.keys.json'), 'utf8'));
+  if (!Array.isArray(keys) || keys.some(entry => !Array.isArray(entry) || entry.length !== 2 || typeof entry[0] !== 'string' || !Array.isArray(entry[1]) || entry[1].some(key => typeof key !== 'string'))) {
+    throw new Error('NLS keys must contain [module, string keys[]] pairs');
   }
-  return { messages: out, orig, translated: hit, total: i };
+  const count = keys.reduce((sum, entry) => sum + entry[1].length, 0);
+  if (count !== orig.length) throw new Error(`NLS key count ${count} does not match messages count ${orig.length}`);
+  const packDocument = readObject(packFile);
+  if (!own(packDocument, 'contents') || !object(packDocument.contents)) throw new Error('NLS language pack lacks contents object');
+  const pack = packDocument.contents;
+  const force = readObject(path.join(dataDir, 'nls.json'), true);
+  const manual = Object.create(null);
+  const manualDir = path.join(dataDir, 'nls');
+  if (fs.existsSync(manualDir)) {
+    for (const file of fs.readdirSync(manualDir).sort()) {
+      if (file.endsWith('.json')) Object.assign(manual, readObject(path.join(manualDir, file)));
+    }
+  }
+  const messages = orig.slice();
+  const covered = new Set();
+  const stats = { total: orig.length, official: 0, manual: 0, forced: 0, translated: 0, rejected: 0, rejections: [] };
+  function put(index, value, kind, location) {
+    const reason = translationProblem(orig[index], value);
+    if (reason) {
+      stats.rejected++;
+      stats.rejections.push({ index, kind, location, reason });
+      return false;
+    }
+    messages[index] = value;
+    stats[kind]++;
+    return true;
+  }
+  let index = 0;
+  for (const [module, moduleKeys] of keys) {
+    const translations = own(pack, module) && object(pack[module]) ? pack[module] : null;
+    for (const key of moduleKeys) {
+      if (own(translations, key) && put(index, translations[key], 'official', `${module}/${key}`)) covered.add(index);
+      index++;
+    }
+  }
+  for (let i = 0; i < orig.length; i++) {
+    if (own(force, orig[i])) put(i, force[orig[i]], 'forced', 'nls.json');
+    else if (!covered.has(i) && own(manual, orig[i])) put(i, manual[orig[i]], 'manual', 'nls/*.json');
+  }
+  stats.translated = messages.reduce((sum, message, i) => sum + Number(message !== orig[i]), 0);
+  const js = jsOriginal.slice(0, range.start) + JSON.stringify(messages) + jsOriginal.slice(range.end);
+  if (JSON.stringify(messagesFromJS(js)) !== JSON.stringify(messages)) throw new Error('Prepared NLS JavaScript differs from prepared JSON');
+  return { changes: [{ relative: JS, source: js, stats }, { relative: JSON_FILE, source: JSON.stringify(messages), stats }], stats };
 }
 
-function apply() {
-  if (!fs.existsSync(PACK)) return console.log('nls: 缺少语言包 cache/zh (见 README), 已跳过');
-  ensureBackup();
-  const { messages, translated, total } = build();
-  const head = fs.readFileSync(JS() + '.bak-zh', 'utf8');
-  const prefix = head.slice(0, head.indexOf('['));
-  fs.writeFileSync(JS(), prefix + JSON.stringify(messages) + ';' + C.MARK);
-  fs.writeFileSync(JSON_(), JSON.stringify(messages));
-  console.log(`nls.messages: 官方语言包覆盖 ${translated}/${total}`);
-}
-function restore() {
-  for (const f of [JS(), JSON_()]) if (fs.existsSync(f + '.bak-zh')) fs.copyFileSync(f + '.bak-zh', f);
-  console.log('已还原 nls.messages');
-}
-module.exports = { apply, restore, build, isPatched };
+module.exports = { prepare, build: prepare };

@@ -1,16 +1,38 @@
 {
   "name": "devin-desktop-zh",
-  "version": "0.1.0",
-  "description": "Devin Desktop 桌面端(Agent 窗口 / 聊天面板 / 编辑器框架)简体中文汉化补丁",
+  "version": "0.3.3",
+  "description": "Devin 网页端油猴与 Windows Desktop Agent 简体中文汉化",
   "private": true,
   "license": "MIT",
-  "bin": { "devin-zh": "src/cli.js" },
+  "bin": {
+    "devin-zh": "src/cli.js"
+  },
   "scripts": {
     "apply": "node src/cli.js apply",
+    "prepare": "node src/cli.js prepare",
     "restore": "node src/cli.js restore",
     "status": "node src/cli.js status",
+    "doctor": "node src/cli.js doctor",
     "translate": "node src/cli.js translate",
     "translate-strings": "node src/cli.js translate-strings",
-    "strings": "node src/cli.js strings"
+    "strings": "node src/cli.js strings",
+    "test": "node --test test/*.test.js",
+    "build:userscript": "node web/build.js",
+    "release:check": "node scripts/public-preflight.js",
+    "build:release": "node scripts/build-release.js"
+  },
+  "dependencies": {
+    "acorn": "8.16.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/GoodWay0223/devin-zh.git"
+  },
+  "homepage": "https://github.com/GoodWay0223/devin-zh",
+  "bugs": {
+    "url": "https://github.com/GoodWay0223/devin-zh/issues"
   }
 }

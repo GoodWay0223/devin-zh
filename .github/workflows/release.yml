@@ -1,0 +1,38 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Check tag and version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: node -e "if(process.env.RELEASE_TAG !== 'v'+require('./package.json').version) throw new Error('Tag must match package version')"
+      - run: npm ci --ignore-scripts
+      - run: npm test
+      - run: npm run release:check
+      - run: npm run build:release
+      - name: Publish both artifacts
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          WEB_VERSION=$(node -p "require('./web/build').buildUserscript().version")
+          gh release create "$RELEASE_TAG" --verify-tag \
+            --title "Devin 汉化 ${RELEASE_TAG} / 网页 ${WEB_VERSION}" \
+            --notes-file release-assets/RELEASE_NOTES.md \
+            release-assets/*.user.js release-assets/*.zip \
+            release-assets/build-report.json release-assets/SHA256SUMS
