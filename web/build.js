@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { mountDevinZh } = require('./runtime');
 const ROOT = path.resolve(__dirname, '..');
-const VERSION = '1.0.10';
+const VERSION = '1.0.11';
 const UPSTREAM_SHA = '6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2';
 function loadWebData() {
   const source = fs.readFileSync(path.join(ROOT, 'data/web-dictionary.js'), 'utf8');
@@ -40,7 +40,7 @@ function buildUserscript() {
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
 // @version      ${VERSION}
-// @description  Devin 简体中文本地维护版：共享词典、动态属性补翻、保护聊天正文和编辑内容
+// @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @match        https://app.devin.ai/*
 // @match        https://app.beta.devin.ai/*

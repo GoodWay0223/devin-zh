@@ -40,6 +40,17 @@ function buildFixture() {
 <label id="settings-language">Spanish<input id="settings-language-value" type="checkbox" value="es"></label>
 <div translate="no" data-devin-input-box="true" data-slate-editor="true" contenteditable="true" role="textbox" aria-label="Prompt" id="real-prompt"><div><span data-slate-placeholder="true" contenteditable="false" id="real-placeholder">Ask Devin to build features, fix bugs, or work on your code</span><span id="real-draft">Review</span><code id="real-code">Save</code></div></div>
 <div translate="no" contenteditable="true"><span data-slate-placeholder="true" contenteditable="false" id="unknown-placeholder">Ask Devin to build features, fix bugs, or work on your code</span></div>
+</section><section id="session-sidebar-fixture"><h2>会话区域保护和流式性能</h2>
+<aside data-slot="sidebar"><div data-slot="sidebar-header"><button id="fixed-new-session">New session</button><a id="fixed-review" href="/review">Review</a></div>
+<div data-slot="sidebar-content-wrapper"><div data-slot="sidebar-content" id="user-session-content">
+<button id="user-project-name" aria-label="Review" title="Create profile">Review</button><button id="user-folder-name">Create profile</button>
+<a id="user-session-name" href="/org/example/sessions/session_uuid_1" aria-label="New session">New session</a>
+<div id="user-session-time">7 days ago</div><div id="user-session-state">Working</div>
+<div data-slot="sidebar-space"><button id="user-space-name">Cloud settings</button></div>
+</div></div></aside>
+<div role="tree"><button id="user-file-name" title="Read private.txt">Read private.txt</button></div>
+<aside data-slot="sidebar-content"><a id="known-settings-sidebar" href="/org/example/settings/general">General</a></aside>
+<aside data-slot="sidebar-content" id="late-settings-sidebar"></aside>
 </section><section id="capability-fixture"><h2>能力和模型说明</h2>
 <div role="menu"><button role="menuitem" id="capability-normal">Normal</button><button role="menuitem" id="capability-fusion">Fusion</button><button role="menuitem" id="capability-ultra">Ultra</button><button role="menuitem" id="capability-lite">Lite</button><button role="menuitem" id="mode-agent">Agent</button><button role="menuitem" id="model-name">GPT-6.1 Sol</button></div>
 <p id="fusion-description">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</p>
@@ -75,7 +86,7 @@ check('Slate 拆分占位提示',el('slate').querySelector('[data-slate-placehol
 check('快捷键不变',el('slate').querySelector('kbd').textContent==='Ctrl');
 check('正文及正文内按钮不变',el('prose').textContent==='Read private.txt'&&el('prose-button').textContent==='Review');
 check('用户与 Agent 消息不变',el('user').textContent==='Save'&&el('agent').textContent==='Read private.txt');
-check('消息操作按钮汉化',el('message-action').getAttribute('aria-label')==='消息操作');
+check('消息区域的按钮文字和描述也保持原文',el('message-action').getAttribute('aria-label')==='Message actions'&&el('message-action').textContent==='Message actions');
 check('代码与终端不变',el('code').textContent==='Read private.txt'&&el('terminal').textContent==='Save');
 check('显式不翻译区域',el('no').textContent==='Wiki');
 check('会话标题和链接不变',el('session').textContent==='Review'&&el('session').getAttribute('href')==='/sessions/abcd1234'&&el('session').getAttribute('aria-label')==='Review');
@@ -104,10 +115,17 @@ check('Fusion 小字说明汉化',el('fusion-description').textContent.includes(
 check('Normal 说明汉化且模型名和版本保留',el('normal-description').textContent.includes('兼顾成本与智能水平')&&['Opus 5.5','GPT-6.1 Sol','Fable 5.1','GPT-6 Astra'].every(name=>el('normal-description').textContent.includes(name)));
 check('快速模式及 ChatGPT 套餐说明汉化不改开关',el('capability-fast').textContent==='快速模式'&&el('capability-plan').textContent==='使用你的 ChatGPT 套餐'&&!el('capability-fast-toggle').checked&&el('capability-plan-toggle').checked);
 check('与模式说明同句的聊天正文和草稿保护',el('model-description-message').textContent.startsWith('Pairs frontier')&&el('model-description-draft').textContent.startsWith('Balances cost'));
+check('会话区域之外固定导航继续汉化',el('fixed-new-session').textContent==='新建会话'&&el('fixed-review').textContent==='代码审查');
+check('项目和文件夹名称即使匹配词典也不汉化',el('user-project-name').textContent==='Review'&&el('user-folder-name').textContent==='Create profile');
+check('会话名称及描述属性保持原文',el('user-session-name').textContent==='New session'&&el('user-session-name').getAttribute('aria-label')==='New session'&&el('user-project-name').title==='Create profile'&&el('user-project-name').getAttribute('aria-label')==='Review');
+check('会话状态时间和空间名称也不处理',el('user-session-time').textContent==='7 days ago'&&el('user-session-state').textContent==='Working'&&el('user-space-name').textContent==='Cloud settings');
+check('用户文件树名称和属性不处理',el('user-file-name').textContent==='Read private.txt'&&el('user-file-name').title==='Read private.txt');
+check('纯固定设置导航不被会话区域排除',el('known-settings-sidebar').textContent==='通用');
 el('dynamic-attr').setAttribute('title','Full width');el('dynamic-attr').setAttribute('aria-label','Session info');
 el('wiki').firstChild.nodeValue='Customize';
 el('normal-description').firstChild.nodeValue='Balances cost and intelligence with models like NextModel 7.2 and GPT-8 Sol';
 el('settings-general').firstChild.nodeValue='Connections';
+const lateLink=document.createElement('a');lateLink.href='/org/example/settings/general';lateLink.id='late-settings-link';lateLink.textContent='General';el('late-settings-sidebar').append(lateLink);
 el('real-placeholder').firstChild.nodeValue='Ask Devin about your code';el('real-draft').firstChild.nodeValue='Save';
 const added=document.createElement('button');added.id='added';added.textContent='Commands and skills';el('ui').append(added);
 const detached=document.createElement('button');detached.textContent='Wiki';el('ui').append(detached);detached.remove();
@@ -117,14 +135,24 @@ check('动态 aria-label 汉化',el('dynamic-attr').getAttribute('aria-label')==
 check('重复渲染文本汉化',el('wiki').textContent==='自定义');
 check('动态模型说明复用句式且新模型名称原样保留',el('normal-description').textContent==='使用 NextModel 7.2 and GPT-8 Sol 等模型，兼顾成本与智能水平。');
 check('动态设置侧栏重新翻译',el('settings-general').textContent==='连接');
+check('异步加载的固定设置侧栏仍可汉化',el('late-settings-link').textContent==='通用');
 check('输入框占位重新渲染不改草稿',el('real-placeholder').textContent==='向 Devin 提问你的代码'&&el('real-draft').textContent==='Save');
 check('新菜单节点汉化',el('added').textContent==='命令与技能');
 check('已移除节点保留',detached.textContent==='Wiki');
 const many=document.createElement('div');many.id='many';el('ui').append(many);
 for(let n=0;n<1200;n++){const b=document.createElement('button');b.textContent='Wiki';many.append(b)}
 await wait(40);check('大量动态节点分批完整汉化',many.children.length===1200&&[...many.children].every(b=>b.textContent==='知识库'));many.remove();
+await wait();const beforeStream=translator.getStats();
+for(let n=0;n<10000;n++){el('agent').firstChild.nodeValue='A private streaming message '+n;el('user-session-state').firstChild.nodeValue='Working '+n;}
+for(let n=0;n<500;n++){const b=document.createElement('button');b.textContent='Review';el('user-session-content').append(b);}
+await wait();const afterStream=translator.getStats();
+check('20000 条正文和会话更新不执行翻译规则',afterStream.ruleTests===beforeStream.ruleTests);
+check('受保护流式更新不进入翻译队列和遍历',afterStream.visitedNodes===beforeStream.visitedNodes&&afterStream.pending===0&&!afterStream.active);
+check('动态会话和项目按钮始终保持原文',[...el('user-session-content').querySelectorAll('button')].slice(-500).every(b=>b.textContent==='Review'));
+check('动态突发不退回整页扫描',afterStream.fullRootScans===1);
 translator.dispose();el('wiki').firstChild.nodeValue='Wiki';await wait();check('可停止并保持英文',el('wiki').textContent==='Wiki');
 const failed=results.filter(r=>!r.pass);el('summary').textContent=failed.length?'失败 '+failed.length+' / '+results.length:'全部通过：'+results.length+' 项实际 DOM 检查';
+el('summary').dataset.runtimeStats=JSON.stringify({beforeStream,afterStream});
 el('summary').className=failed.length?'fail':'pass';el('summary').dataset.status=failed.length?'failed':'passed';el('summary').dataset.count=results.length;
 document.title=(failed.length?'FAIL':'PASS')+' - Devin 汉化回归验证';
 })().catch(error=>{el('summary').textContent='执行失败：'+error.message;el('summary').dataset.status='failed';});
