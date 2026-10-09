@@ -10,8 +10,8 @@
 
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
-| **网页油猴脚本** | **1.0.9** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **0.3.3** | 指定官方安装目录，检查、准备补丁，退出客户端后应用 |
+| **网页油猴脚本** | **1.0.10** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **0.3.4** | 指定官方安装目录，检查、准备补丁，退出客户端后应用 |
 
 **[下载最新发布版](https://github.com/GoodWay0223/devin-zh/releases/latest)** · [网页使用与维护](web/README.md) · [客户端详细安装](docs/desktop.md) · [Devin 更新后重新汉化](UPDATE_GUIDE.md)
 
@@ -20,10 +20,12 @@
 适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
 
 1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.9.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.10.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
 3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
 
-覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,552 条精确词条、102 条规则**；相较原版 1.0.7 新增 358 条词条并修订 9 条译文。
+覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,581 条精确词条、104 条规则**；相较原版 1.0.7 新增 387 条词条并修订 14 条译文。
+
+`Normal`、`Agent`、`Fusion`、`Ultra`、`Lite` 及模型名称保留英文；只汉化能力和模式的介绍、快速模式与套餐等操作文案。模型介绍中列举的名字和版本保留，已确认的句式可在模型更新后继续复用。
 
 翻译在浏览器本地完成，脚本使用 `@grant none`，没有翻译服务请求。保护聊天正文、代码、终端、输入草稿以及会话、PR 和自动化的自定义名称；只处理能够确认的界面文字和描述属性。新页面或未知结构可能保留英文。
 
@@ -31,7 +33,7 @@
 
 ## 客户端：汉化本地 Agent 界面
 
-需要 **Windows、Node.js 22+、正常工作的官方 Devin Desktop**。下载发布页的 `devin-desktop-zh-0.3.3.zip` 并解压，进入其中的 `devin-zh` 文件夹；也可以克隆源码：
+需要 **Windows、Node.js 22+、正常工作的官方 Devin Desktop**。下载发布页的 `devin-desktop-zh-0.3.4.zip` 并解压，进入其中的 `devin-zh` 文件夹；也可以克隆源码：
 
 ```powershell
 git clone https://github.com/GoodWay0223/devin-zh.git
@@ -86,15 +88,15 @@ node src/cli.js status
 
 ## 验证记录
 
-截至 2026-10-08：
+截至 2026-10-09：
 
 | 检查 | 结果与边界 |
 | --- | --- |
-| 项目回归测试 | 58 项，覆盖翻译契约、显示/内部值分离、未知结构拒绝、安装指纹、事务恢复和路径配置 |
-| 网页 DOM 回归 | 独立浏览器验证页 50 项通过，包含动态属性、1,200 个动态按钮、Slate 草稿及名称保护；不是新版安装后的全站验收 |
-| 登录态网页检查 | 只读巡查首页、模式和菜单、自动化、安全、审查、知识库、自定义及组织/个人设置；没有触发生成、扫描或账户保存 |
+| 项目回归测试 | 70 项，覆盖翻译契约、显示/内部值分离、动态模型说明/设置、未知结构拒绝、安装指纹、事务恢复和路径配置 |
+| 网页 DOM 回归 | 独立浏览器验证页 57 项通过，包含动态属性、1,200 个动态按钮、Slate 草稿、模型名称及正文保护；不是新版安装后的全站验收 |
+| 登录态网页检查 | 1.0.9 曾只读巡查首页、模式和菜单、自动化、安全、审查、知识库、自定义及组织/个人设置；1.0.10 使用截图、源文案与独立 DOM 验证，尚未安装后巡查 |
 | 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
-| 本次客户端工具 | 0.3.3 对同一构建通过兼容检查及准备报告检查；新增词典尚未实机应用后再次启动验收 |
+| 本次客户端工具 | 0.3.4 对同一构建检查并生成补丁，包含 71 条本地设置显示词条、7 个能力说明出口及英文语言包补翻；尚未完成新版实机启动和页面验收 |
 
 检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
 
@@ -110,6 +112,8 @@ node web/serve-fixture.js # 打开打印的本地地址执行真实 DOM 回归
 | 文件/目录 | 职责 |
 | --- | --- |
 | `data/display.zh.json` | 两端共用导航、模式与菜单显示词典 |
+| `data/model-descriptions.zh.json` | 两端共用能力/模型说明、名称保护及锚定句式 |
+| `data/settings-display.zh.json` | 只供已确认的客户端设置行/按钮显示出口使用 |
 | `data/web-reviewed.zh.json`、`web-shortcuts.zh.json`、`web-settings.zh.json` | 网页人工补充，客户端也读取并检查 |
 | `data/strings/`、`data/i18n.zh.json`、`data/nls/` | 客户端人工词条、按路径资源和框架补充 |
 | `web/runtime.js`、`web/build.js` | 网页显示层引擎及单文件构建 |

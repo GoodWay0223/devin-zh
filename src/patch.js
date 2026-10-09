@@ -32,12 +32,22 @@ function patchSource(source, dictionary = C.loadDict(), displayDictionary = C.re
     stats.ui++;
   }
   for (const node of analysis.display) {
-    const entries = Object.entries(displayDictionary[node.kind] || {}).filter(([en, zh]) => typeof zh === 'string' && !translationProblem(en, zh));
-    if (!entries.length) continue;
+    // Capability/model labels are product identifiers, including unknown future names.
+    // Preserve the complete displayed name rather than translating any portion of it.
+    if (node.kind === 'capabilityName') continue;
+    const models = require('./model-translations');
+    const table = node.kind === 'capabilityDescription' ? models.descriptions
+      : node.kind === 'settings' ? displayDictionary.settings || C.readJson(C.dataFile('settings-display.zh.json'))
+      : node.kind === 'mode' ? { ...displayDictionary.mode, ...models.names, Agent: 'Agent', Normal: 'Normal' }
+      : displayDictionary[node.kind] || {};
+    const entries = Object.entries(table).filter(([en, zh]) => typeof zh === 'string' && en !== zh && !translationProblem(en, zh));
+    const rules = node.kind === 'capabilityDescription' ? models.rules.map(rule => [rule.pattern.source, rule.pattern.flags, rule.replacement]) : [];
+    if (!entries.length && !rules.length) continue;
     const expression = source.slice(node.index, node.index + node.len);
     // Translate only the displayed value. Evaluate it once, preserve unknown values,
     // and avoid prototype lookups or changing the source navigation/action object.
-    const value = (node.prefix || '') + `(__devinZhText=>${JSON.stringify(entries)}.find(__devinZhEntry=>__devinZhEntry[0]===__devinZhText)?.[1]??__devinZhText)(${expression})`;
+    const ruleCode = rules.length ? `for(const [__devinZhPattern,__devinZhFlags,__devinZhReplacement] of ${JSON.stringify(rules)}){const __devinZhRegex=new RegExp(__devinZhPattern,__devinZhFlags);if(__devinZhRegex.test(__devinZhText))return __devinZhText.replace(__devinZhRegex,__devinZhReplacement);}` : '';
+    const value = (node.prefix || '') + `(__devinZhText=>{if(typeof __devinZhText!=="string")return __devinZhText;const __devinZhMatch=${JSON.stringify(entries)}.find(__devinZhEntry=>__devinZhEntry[0]===__devinZhText);if(__devinZhMatch)return __devinZhMatch[1];${ruleCode}return __devinZhText;})(${expression})`;
     replacements.push({ index: node.index, len: node.len, value });
     stats.display++;
   }

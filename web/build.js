@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { mountDevinZh } = require('./runtime');
 const ROOT = path.resolve(__dirname, '..');
-const VERSION = '1.0.9';
+const VERSION = '1.0.10';
 const UPSTREAM_SHA = '6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2';
 function loadWebData() {
   const source = fs.readFileSync(path.join(ROOT, 'data/web-dictionary.js'), 'utf8');
@@ -14,7 +14,8 @@ function loadWebData() {
   const reviewed = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/web-reviewed.zh.json'), 'utf8'));
   const shortcuts = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/web-shortcuts.zh.json'), 'utf8'));
   const settings = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/web-settings.zh.json'), 'utf8'));
-  const dictionary = Object.assign(Object.create(null), data.DICTIONARY, display.nav, display.menu, shortcuts, reviewed, settings);
+  const models = require('../src/model-translations');
+  const dictionary = Object.assign(Object.create(null), data.DICTIONARY, display.nav, display.menu, shortcuts, reviewed, settings, models.descriptions, models.names);
   for (const [key, value] of Object.entries(dictionary)) {
     if (typeof value !== 'string' || !key.trim()) throw new Error('Invalid translation: ' + key);
   }
@@ -23,7 +24,7 @@ function loadWebData() {
     if (!rule.pattern.startsWith('^') || !rule.pattern.endsWith('$') || /[^iu]/.test(rule.flags || '') || typeof rule.replacement !== 'string') throw new Error('Unsafe reviewed regex');
     return {pattern: new RegExp(rule.pattern, rule.flags), replacement: rule.replacement};
   });
-  return { dictionary, rules: [...reviewedRules, ...data.REGEX_RULES], reviewedCount: Object.keys(reviewed).length + Object.keys(shortcuts).length + Object.keys(settings).length,
+  return { dictionary, rules: [...models.rules, ...reviewedRules, ...data.REGEX_RULES], reviewedCount: Object.keys(reviewed).length + Object.keys(shortcuts).length + Object.keys(settings).length + Object.keys(models.descriptions).length,
     baseEntries: Object.keys(data.DICTIONARY).length,
     newEntries: Object.keys(dictionary).filter(key=>!Object.hasOwn(data.DICTIONARY,key)).length,
     updatedTranslations: Object.keys(dictionary).filter(key=>Object.hasOwn(data.DICTIONARY,key)&&data.DICTIONARY[key]!==dictionary[key]).length };

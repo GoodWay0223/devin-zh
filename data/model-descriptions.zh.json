@@ -1,0 +1,46 @@
+{
+  "names": ["Normal", "Fusion", "Ultra", "Lite", "Agent", "Data", "Anthropic", "OpenAI", "Google"],
+  "descriptions": {
+    "Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost": "结合前沿智能与高性价比的执行方式，以更低成本获得前沿水平的结果",
+    "Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost.": "结合前沿智能与高性价比的执行方式，以更低成本获得前沿水平的结果。",
+    "Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra": "使用 Opus 5.5、GPT-6.1 Sol、Fable 5.1 和 GPT-6 Astra 等模型，兼顾成本与智能水平。",
+    "Uses models like Opus, Sol, and some Fable or Astra.": "使用 Opus、Sol，以及部分 Fable 或 Astra 模型。",
+    "Uses models like Fable and Astra.": "使用 Fable 和 Astra 等模型。",
+    "Uses models like Luna and SWE-1.7.": "使用 Luna 和 SWE-1.7 等模型。",
+    "Fast and tuned for data analytics": "响应快速，并针对数据分析优化",
+    "Fast and good at long-horizon planning": "响应快速，擅长长期任务规划",
+    "Internal agent sidekick preview": "内部 Agent 助手预览版",
+    "2.5x faster, 2x more expensive, same intelligence": "速度提升至 2.5 倍，费用提升至 2 倍，智能水平相同",
+    "OpenAI's most capable model": "OpenAI 能力最强的模型",
+    "OpenAI's model for professional work": "OpenAI 面向专业工作的模型",
+    "Anthropic's latest model": "Anthropic 最新的模型",
+    "Good at instruction following": "擅长遵循指令",
+    "Experimental research model": "实验性研究模型",
+    "Our most powerful and hardest thinking agent, significantly more expensive": "能力最强、思考最深入的 Agent，费用明显更高",
+    "Tuned for smaller, well-defined tasks. 60% cheaper": "针对规模较小、目标明确的任务优化，费用降低 60%",
+    "Interactive Q&A and planning": "交互式问答与规划",
+    "Fast mode": "快速模式",
+    "Use your ChatGPT plan": "使用你的 ChatGPT 套餐",
+    "Highest capability": "最高能力",
+    "Lower cost": "较低成本",
+    "Balanced": "均衡",
+    "Standard speed": "标准速度",
+    "Thinking effort": "思考强度",
+    "Best effort; may use standard speed if Fast isn’t available. Roughly 2–5× the cost when available.": "尽可能使用快速响应；若快速模式不可用，可能改用标准速度。可用时费用约为 2–5 倍。",
+    "Choose a model, thinking effort, and priority": "选择模型、思考强度和优先级",
+    "Recommended for most tasks. Cognition continuously evaluates models across capability, speed, and cost, and automatically updates the selection as pareto-better options become available.": "适合大多数任务。Cognition 会持续评估模型的能力、速度和成本，并在出现综合表现更优的选项时自动更新模型选择。",
+    "Higher effort usually improves difficult results, but costs more and can lead to overthinking.": "提高思考强度通常有助于解决难题，但费用更高，也可能导致过度思考。"
+  },
+  "rules": [
+    {
+      "pattern": "^Balances cost and intelligence with models like (.+)$",
+      "flags": "",
+      "replacement": "使用 $1 等模型，兼顾成本与智能水平。"
+    },
+    {
+      "pattern": "^Uses models like (.+)\\.$",
+      "flags": "",
+      "replacement": "使用 $1 等模型。"
+    }
+  ]
+}

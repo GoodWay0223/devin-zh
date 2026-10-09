@@ -19,7 +19,7 @@ function analyzeSource(src, { acorn } = {}) {
   if (!acorn?.parse) throw new Error('analyzeSource requires an injected Acorn parser');
   const ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'module' });
   const runtimeIds = require('./runtime').discoverRuntimeIds(ast);
-  const scopes = new WeakMap(), parents = new WeakMap(), calls = [], writes = [], assignments = [];
+  const scopes = new WeakMap(), parents = new WeakMap(), calls = [], writes = [], assignments = [], functions = [];
   const root = { parent: null, kind: 'function', bindings: new Map() };
   function bind(scope, name, init, kind = null) {
     if (!name) return;
@@ -45,6 +45,7 @@ function analyzeSource(src, { acorn } = {}) {
     if (parent) parents.set(n, parent);
     if (n.type === 'FunctionDeclaration') bind(scope, n.id?.name, n);
     if (/^(FunctionExpression|FunctionDeclaration|ArrowFunctionExpression)$/.test(n.type)) {
+      functions.push(n);
       scope = { parent: scope, kind: 'function', bindings: new Map() };
       if (n.id) pattern(n.id, scope);
       n.params.forEach(p => pattern(p, scope));
@@ -159,6 +160,130 @@ function analyzeSource(src, { acorn } = {}) {
     if (positions.has(node.start)) return;
     positions.add(node.start); display.push({ index: node.start, len: node.end - node.start, kind });
   }
+  function componentFunction(component, scope) {
+    if (component?.type !== 'Identifier') return null;
+    const binding = find(scope, component.name);
+    if (!binding || binding.ambiguous || binding.mutated) return null;
+    let fn = binding.init;
+    if (fn?.type === 'CallExpression') {
+      const callee = fn.callee.type === 'SequenceExpression' ? fn.callee.expressions.at(-1) : fn.callee;
+      if (callee.type !== 'MemberExpression' || callee.computed || !['memo', 'forwardRef'].includes(keyOf(callee.property)) || resolve(callee.object, scopes.get(callee)) !== 'react') return null;
+      fn = fn.arguments[0];
+    }
+    return ['FunctionDeclaration', 'FunctionExpression', 'ArrowFunctionExpression'].includes(fn?.type) ? fn : null;
+  }
+  function parameters(fn) {
+    const object = fn?.params[0];
+    return object?.type === 'ObjectPattern' ? new Map(object.properties.filter(p => p.type === 'Property' && !p.computed).map(p => [keyOf(p.key), p.value.type === 'AssignmentPattern' ? p.value.left : p.value])) : new Map();
+  }
+  function safeBinding(binding) {
+    if (!binding || binding.mutated || binding.ambiguous) return false;
+    // A mutated parameter object is not a display contract, even if its name survives.
+    return !assignments.some(assignment => {
+      let left = assignment.left;
+      while (left?.type === 'MemberExpression') left = left.object;
+      return left?.type === 'Identifier' && find(scopes.get(left), left.name) === binding;
+    });
+  }
+  function dependsOn(node, target, seen = new Set()) {
+    if (!node || !safeBinding(target)) return false;
+    if (node.type === 'Identifier') {
+      const binding = find(scopes.get(node), node.name);
+      if (binding === target) return true;
+      if (!safeBinding(binding) || seen.has(binding)) return false;
+      seen.add(binding); return dependsOn(binding.init, target, seen);
+    }
+    if (node.type === 'LogicalExpression') return dependsOn(node.left, target, new Set(seen)) || dependsOn(node.right, target, new Set(seen));
+    return false;
+  }
+  function displayValue(node, kind) {
+    if (!node || positions.has(node.start) || !['Identifier', 'MemberExpression', 'LogicalExpression', 'ConditionalExpression'].includes(node.type)) return;
+    positions.add(node.start); display.push({ index: node.start, len: node.end - node.start, kind });
+  }
+  const settingsRows = new Set(), settingsActions = new Set(), settingOutlets = new WeakMap();
+  for (const fn of functions) {
+    const params = parameters(fn);
+    // The setting row's accessibility/display override contract distinguishes it
+    // from ordinary objects, chat messages, forms and arbitrary descriptions.
+    if (!['id', 'labelId', 'label', 'description', 'displayLabel', 'displayDescription', 'orientation', 'scrollIntoView'].every(k => params.has(k))) continue;
+    const label = params.get('label'), description = params.get('description');
+    if (label?.type !== 'Identifier' || description?.type !== 'Identifier') continue;
+    const labelBinding = find(scopes.get(fn.body), label.name), descriptionBinding = find(scopes.get(fn.body), description.name);
+    const outlets = calls.filter(call => call.start >= fn.body.start && call.end <= fn.body.end && renderMethod(call)).map(call => prop(call.arguments[1], 'children')).filter(Boolean);
+    const labels = outlets.filter(node => dependsOn(node, labelBinding)), descriptions = outlets.filter(node => dependsOn(node, descriptionBinding));
+    if (!labels.length || !descriptions.length) continue;
+    settingsRows.add(fn); for (const node of [...labels, ...descriptions]) settingOutlets.set(node, 'settings');
+  }
+  for (const fn of functions) {
+    const params = parameters(fn);
+    if (!['id', 'label', 'description', 'actionLabel', 'onAction'].every(k => params.has(k))) continue;
+    const callsInFn = calls.filter(call => call.start >= fn.body.start && call.end <= fn.body.end && renderMethod(call));
+    if (!callsInFn.some(call => settingsRows.has(componentFunction(call.arguments[0], scopes.get(call))))) continue;
+    const action = params.get('actionLabel'), onAction = params.get('onAction');
+    if (action?.type !== 'Identifier' || onAction?.type !== 'Identifier') continue;
+    const actionBinding = find(scopes.get(fn.body), action.name), clickBinding = find(scopes.get(fn.body), onAction.name);
+    for (const call of callsInFn) {
+      const children = prop(call.arguments[1], 'children'), click = prop(call.arguments[1], 'onClick');
+      if (dependsOn(children, actionBinding) && dependsOn(click, clickBinding)) { settingsActions.add(fn); settingOutlets.set(children, 'settings'); }
+    }
+  }
+  const capabilityRoots = [], capabilityComponents = new Set();
+  for (const assignment of assignments) {
+    const left = assignment.left;
+    if (left.type !== 'MemberExpression' || left.computed || keyOf(left.property) !== 'displayName' || staticText(assignment.right) !== 'CapabilitySelector') continue;
+    const fn = componentFunction(left.object, scopes.get(left));
+    const params = parameters(fn);
+    if (fn && ['footerWidth', 'disabled'].every(k => params.has(k))) capabilityRoots.push(fn);
+  }
+  // Follow only render-connected capability menu contracts. Icons and arbitrary
+  // components reachable through the selector are deliberately not followed.
+  let frontier = capabilityRoots;
+  for (let depth = 0; depth < 4; depth++) {
+    const next = [];
+    for (const parent of frontier) for (const call of calls) {
+      if (call.start < parent.body.start || call.end > parent.body.end || !renderMethod(call)) continue;
+      const fn = componentFunction(call.arguments[0], scopes.get(call)), params = parameters(fn);
+      const menu = ['fusion', 'items', 'value', 'onValueChange'].every(k => params.has(k));
+      const item = params.has('item');
+      const submenu = ['label', 'header', 'items', 'value', 'onValueChange'].every(k => params.has(k));
+      if (!fn || capabilityComponents.has(fn) || !(menu || item || submenu) || depth === 0 && !menu) continue;
+      capabilityComponents.add(fn); next.push(fn);
+    }
+    frontier = next;
+  }
+  function capabilityDisplay(node, call) {
+    const fn = [...capabilityComponents].find(fn => call.start >= fn.body.start && call.end <= fn.body.end);
+    if (!fn) return null;
+    const params = parameters(fn);
+    if (node?.type === 'MemberExpression' && !node.computed) {
+      const name = keyOf(node.property);
+      if (['fusionDescription', 'capabilityTooltip', 'tooltip', 'disabledTooltip', 'headerTooltip'].includes(name)) {
+        let object = node.object;
+        while (object?.type === 'MemberExpression') object = object.object;
+        if (object?.type !== 'Identifier') return null;
+        const binding = find(scopes.get(object), object.name);
+        if (!safeBinding(binding)) return null;
+        const item = params.get('item');
+        const itemBinding = item?.type === 'Identifier' && find(scopes.get(fn.body), item.name);
+        const labels = params.get('labels');
+        const labelsBinding = labels?.type === 'Identifier' && find(scopes.get(fn.body), labels.name);
+        // Item descriptions come from the component's item parameter. Fusion
+        // labels come from its explicit {...defaults, ...labels} display object.
+        const mergedLabels = binding.init?.type === 'ObjectExpression' && binding.init.properties.some(p => p.type === 'SpreadElement' && p.argument.type === 'Identifier' && find(scopes.get(p.argument), p.argument.name) === labelsBinding);
+        if (binding !== itemBinding && !mergedLabels) return null;
+        return 'capabilityDescription';
+      }
+      if (name === 'label') return 'capabilityName';
+    }
+    for (const [name, local] of params) {
+      if (local.type !== 'Identifier') continue;
+      if (dependsOn(node, find(scopes.get(fn.body), local.name))) {
+        if (['tooltip', 'headerTooltip'].includes(name)) return 'capabilityDescription';
+        if (['label', 'header'].includes(name)) return 'capabilityName';
+      }
+    }
+    return null;
+  }
   function collect(n, property) {
     const value = staticText(n);
     if (value === undefined || positions.has(n.start)) return;
@@ -173,6 +298,10 @@ function analyzeSource(src, { acorn } = {}) {
     if (n.type === 'ObjectExpression') for (const p of n.properties) {
       if (p.type !== 'Property' || p.computed) continue;
       const property = keyOf(p.key);
+      if (['children', 'content', 'tooltip', 'label', 'headerTooltip'].includes(property)) {
+        const kind = settingOutlets.get(p.value) || capabilityDisplay(p.value, call);
+        if (kind) { displayValue(p.value, kind); continue; }
+      }
       const modeDisplay = ['title', 'subtitle', 'label'].includes(property) && modeSelectors.some(fn => call.start >= fn.body.start && call.end <= fn.body.end);
       if (modeDisplay && (p.value.type === 'Identifier' || p.value.type === 'MemberExpression' && !p.value.computed && ['label', 'description'].includes(keyOf(p.value.property)))) {
         if (!positions.has(p.value.start)) {
@@ -219,7 +348,7 @@ function analyzeSource(src, { acorn } = {}) {
     if (method === 'createElement') for (const n of call.arguments.slice(2)) collect(n, 'children');
   }
   blocks.sort((a, b) => a.index - b.index); ui.sort((a, b) => a.index - b.index);
-  return { blocks, ui, display, stats: { jsonCalls, staticJsonBlocks: blocks.length, englishResources: blocks.filter(b => b.en).length, renderCalls, uiPositions: ui.length, displayPositions: display.length, modeSelectors: modeSelectors.length, runtimeModules: [...runtimeIds].map(([id, kind]) => ({ id, kind })) } };
+  return { blocks, ui, display, stats: { jsonCalls, staticJsonBlocks: blocks.length, englishResources: blocks.filter(b => b.en).length, renderCalls, uiPositions: ui.length, displayPositions: display.length, modeSelectors: modeSelectors.length, settingsRows: settingsRows.size, settingsActions: settingsActions.size, capabilitySelectors: capabilityRoots.length, capabilityComponents: capabilityComponents.size, runtimeModules: [...runtimeIds].map(([id, kind]) => ({ id, kind })) } };
 }
 
 module.exports = { analyzeSource, resourceKind, UI_PROPS };

@@ -78,6 +78,20 @@ test('NLS rejects JS and JSON original mismatch', t => {
   assert.throws(() => prepare(options), /originals disagree/);
 });
 
+test('unchanged English pack entries allow reviewed manual fallback but real translations keep priority', t => {
+  const options = fixture(t, ['Agent settings', 'Official setting', 'Hello {0}', 'Untouched'], {
+    key0: 'Agent settings', key1: '官方设置', key2: 'Hello {0}', key3: 'Untouched',
+  });
+  fs.writeFileSync(path.join(options.dataDir, 'nls', 'extra.json'), JSON.stringify({
+    'Agent settings': 'Agent 设置', 'Official setting': '人工设置', 'Hello {0}': '你好 {1}',
+  }));
+  const result = prepare(options);
+  assert.deepEqual(JSON.parse(result.changes[1].source), ['Agent 设置', '官方设置', 'Hello {0}', 'Untouched']);
+  assert.equal(result.stats.manual, 1);
+  assert.equal(result.stats.official, 1);
+  assert.equal(result.stats.rejected, 1);
+});
+
 test('NLS does not translate inherited property names', t => {
   const options = fixture(t, ['toString', 'constructor', '__proto__'], {}, ['toString', 'constructor', '__proto__']);
   const result = prepare(options);

@@ -127,7 +127,10 @@ function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_P
   for (const [module, moduleKeys] of keys) {
     const translations = own(pack, module) && object(pack[module]) ? pack[module] : null;
     for (const key of moduleKeys) {
-      if (own(translations, key) && put(index, translations[key], 'official', `${module}/${key}`)) covered.add(index);
+      // Language packs also carry unchanged English placeholders. They are not
+      // translations and must not block the reviewed manual fallback.
+      if (own(translations, key) && translations[key] !== orig[index] &&
+          put(index, translations[key], 'official', `${module}/${key}`)) covered.add(index);
       index++;
     }
   }

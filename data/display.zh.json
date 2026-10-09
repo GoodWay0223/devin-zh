@@ -27,7 +27,8 @@
     "Reads but won't edit": "只读取，不修改",
     "Plan changes before implementing": "实施前先制定计划",
     "Auto-approve all tool calls": "自动批准所有工具调用",
-    "Normal": "常规",
+    "Normal": "Normal",
+    "Agent": "Agent",
     "Default": "默认",
     "Accept Edits": "自动接受编辑",
     "Accept edits": "自动接受编辑"

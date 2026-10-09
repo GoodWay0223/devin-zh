@@ -40,6 +40,13 @@ function buildFixture() {
 <label id="settings-language">Spanish<input id="settings-language-value" type="checkbox" value="es"></label>
 <div translate="no" data-devin-input-box="true" data-slate-editor="true" contenteditable="true" role="textbox" aria-label="Prompt" id="real-prompt"><div><span data-slate-placeholder="true" contenteditable="false" id="real-placeholder">Ask Devin to build features, fix bugs, or work on your code</span><span id="real-draft">Review</span><code id="real-code">Save</code></div></div>
 <div translate="no" contenteditable="true"><span data-slate-placeholder="true" contenteditable="false" id="unknown-placeholder">Ask Devin to build features, fix bugs, or work on your code</span></div>
+</section><section id="capability-fixture"><h2>能力和模型说明</h2>
+<div role="menu"><button role="menuitem" id="capability-normal">Normal</button><button role="menuitem" id="capability-fusion">Fusion</button><button role="menuitem" id="capability-ultra">Ultra</button><button role="menuitem" id="capability-lite">Lite</button><button role="menuitem" id="mode-agent">Agent</button><button role="menuitem" id="model-name">GPT-6.1 Sol</button></div>
+<p id="fusion-description">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</p>
+<div role="tooltip" id="normal-description">Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra</div>
+<label id="capability-fast">Fast mode<input type="checkbox" id="capability-fast-toggle"></label><label id="capability-plan">Use your ChatGPT plan<input type="checkbox" id="capability-plan-toggle" checked></label>
+<div data-testid="transcript-agent-message"><span id="model-description-message">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</span></div>
+<p contenteditable="true" id="model-description-draft">Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra</p>
 </section><script>
 ${runtime}
 const dictionary=${JSON.stringify(dictionary).replaceAll('<','\\u003c')};const rules=${serializeRules(rules)};
@@ -83,7 +90,7 @@ check('开关状态不变',el('toggle').checked);
 check('设置侧栏分组标题汉化',el('settings-personal').textContent==='个人'&&el('settings-org').textContent==='组织');
 check('设置侧栏相邻覆盖链接汉化',el('settings-general').textContent==='通用'&&el('settings-preferences').textContent==='偏好设置');
 check('相邻会话标题及未知多链接行不变',el('settings-session-name').textContent==='Review'&&el('settings-ambiguous').textContent==='Review');
-check('选项显示与内部值分离',el('settings-agent').textContent==='常规'&&el('settings-agent-value').value==='normal');
+check('Normal 名称与选项内部值均保留',el('settings-agent').textContent==='Normal'&&el('settings-agent-value').value==='normal');
 check('电脑操作标题与完整说明',el('settings-use').textContent==='智能体电脑操作'&&el('settings-use-description').textContent.includes('无论是否开启'));
 check('权限文案翻译不改权限状态',el('settings-pr-access').textContent==='处理 PR 评论时要求会话访问权限'&&!el('settings-pr-toggle').checked);
 check('排除规则说明保留优先级',el('settings-exclusion').textContent.includes('即使它同时匹配自动审查规则'));
@@ -91,8 +98,15 @@ check('语言显示与选项值分离',el('settings-language').textContent==='�
 check('真实禁翻输入框的固定占位提示',el('real-placeholder').textContent==='让 Devin 开发功能、修复缺陷或处理你的代码'&&el('real-prompt').getAttribute('aria-label')==='提示词');
 check('真实输入框草稿及代码保护',el('real-draft').textContent==='Review'&&el('real-code').textContent==='Save');
 check('未知禁翻输入结构保留原文',el('unknown-placeholder').textContent==='Ask Devin to build features, fix bugs, or work on your code');
+check('Normal/Fusion/Ultra/Lite 和 Agent 模式名称保持英文',['capability-normal','capability-fusion','capability-ultra','capability-lite','mode-agent'].map(id=>el(id).textContent).join('/')==='Normal/Fusion/Ultra/Lite/Agent');
+check('模型名称保持英文',el('model-name').textContent==='GPT-6.1 Sol');
+check('Fusion 小字说明汉化',el('fusion-description').textContent.includes('以更低成本'));
+check('Normal 说明汉化且模型名和版本保留',el('normal-description').textContent.includes('兼顾成本与智能水平')&&['Opus 5.5','GPT-6.1 Sol','Fable 5.1','GPT-6 Astra'].every(name=>el('normal-description').textContent.includes(name)));
+check('快速模式及 ChatGPT 套餐说明汉化不改开关',el('capability-fast').textContent==='快速模式'&&el('capability-plan').textContent==='使用你的 ChatGPT 套餐'&&!el('capability-fast-toggle').checked&&el('capability-plan-toggle').checked);
+check('与模式说明同句的聊天正文和草稿保护',el('model-description-message').textContent.startsWith('Pairs frontier')&&el('model-description-draft').textContent.startsWith('Balances cost'));
 el('dynamic-attr').setAttribute('title','Full width');el('dynamic-attr').setAttribute('aria-label','Session info');
 el('wiki').firstChild.nodeValue='Customize';
+el('normal-description').firstChild.nodeValue='Balances cost and intelligence with models like NextModel 7.2 and GPT-8 Sol';
 el('settings-general').firstChild.nodeValue='Connections';
 el('real-placeholder').firstChild.nodeValue='Ask Devin about your code';el('real-draft').firstChild.nodeValue='Save';
 const added=document.createElement('button');added.id='added';added.textContent='Commands and skills';el('ui').append(added);
@@ -101,6 +115,7 @@ await wait();
 check('动态 title 汉化',el('dynamic-attr').title==='全宽显示');
 check('动态 aria-label 汉化',el('dynamic-attr').getAttribute('aria-label')==='会话信息');
 check('重复渲染文本汉化',el('wiki').textContent==='自定义');
+check('动态模型说明复用句式且新模型名称原样保留',el('normal-description').textContent==='使用 NextModel 7.2 and GPT-8 Sol 等模型，兼顾成本与智能水平。');
 check('动态设置侧栏重新翻译',el('settings-general').textContent==='连接');
 check('输入框占位重新渲染不改草稿',el('real-placeholder').textContent==='向 Devin 提问你的代码'&&el('real-draft').textContent==='Save');
 check('新菜单节点汉化',el('added').textContent==='命令与技能');

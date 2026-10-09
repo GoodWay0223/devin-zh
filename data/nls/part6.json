@@ -1,0 +1,11 @@
+{
+  "Command": "命令",
+  "Agent mode - uses AI agent for deeper analysis.\nChange in Devin Settings.": "Agent 模式：使用 AI Agent 进行更深入的分析。\n可在 Devin 设置中更改。",
+  "Analysis mode.\nChange in Devin Settings.": "分析模式。\n可在 Devin 设置中更改。",
+  "Fast mode - quick analysis.\nChange in Devin Settings.": "快速模式：快速分析。\n可在 Devin 设置中更改。",
+  "Smart mode - thorough analysis.\nChange in Devin Settings.": "智能模式：全面分析。\n可在 Devin 设置中更改。",
+  "Devin configurations (`~/.codeium/{0}/mcp_config.json`)": "Devin 配置（`~/.codeium/{0}/mcp_config.json`）",
+  "Array of additional paths to allow write access. Leave empty to disallow writes outside the workspace folders, workspace storage folder, and sandbox temp directory.": "允许写入的额外路径列表。留空时，禁止写入工作区文件夹、工作区存储文件夹和沙盒临时目录以外的位置。",
+  "The start of a command to match against. A regular expression can be provided by wrapping the string in `/` characters.": "用于匹配的命令前缀。将字符串置于 `/` 字符之间可使用正则表达式。",
+  "Render Devin Review in an embedded webview iframe instead of a native browser view. Intended for local development; in production this is controlled by a feature rollout.": "在嵌入式 webview iframe 中显示 Devin Review，替代原生浏览器视图。此设置用于本地开发；生产环境由功能发布策略控制。"
+}

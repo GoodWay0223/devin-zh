@@ -6,7 +6,7 @@
   "Let Devin use mouse, keyboard, and screen tools. When disabled, Devin uses browser tools instead. The Desktop tab remains available either way.": "允许 Devin 使用鼠标、键盘和屏幕工具。关闭后，Devin 会改用浏览器工具。无论是否开启，“桌面”标签页都可使用。",
   "SSH access": "SSH 访问",
   "How users may SSH into session machines": "用户通过 SSH 访问会话机器的方式",
-  "Normal": "常规",
+  "Normal": "Normal",
   "API default agent": "API 默认智能体",
   "Default agent for API sessions in your organization": "组织内通过 API 创建的会话所使用的默认智能体",
   "Use org default": "使用组织默认设置",

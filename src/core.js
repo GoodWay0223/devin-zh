@@ -78,16 +78,17 @@ function loadDict() {
   const webReviewed = readJson(dataFile('web-reviewed.zh.json'));
   const webShortcuts = readJson(dataFile('web-shortcuts.zh.json'));
   const webSettings = readJson(dataFile('web-settings.zh.json'));
-  const human = Object.assign(Object.create(null), DICTIONARY, display.nav, display.menu, webShortcuts, webReviewed, webSettings, manual);
+  const models = require('./model-translations');
+  const human = Object.assign(Object.create(null), DICTIONARY, display.nav, display.menu, webShortcuts, webReviewed, webSettings, manual, models.descriptions, models.names);
   // 软件/品牌名称不使用机翻草稿中的音译；原样保留。
   for (const name of ['Vim', 'Eclipse', 'Npm', 'npm', 'Sublime Text', 'Notepad++', 'VS Code', 'Devin', 'Windsurf']) human[name] = name;
   const smt = readJson(dataFile('strings.mt.json'));
   const rules = require('./rules');
   const own = (o, k) => Object.hasOwn(o, k) ? o[k] : undefined;
-  const str = v => own(human, v) ?? rules.tr(v) ?? own(smt, v);
+  const str = v => own(human, v) ?? models.translateModelDescription(v) ?? rules.tr(v) ?? own(smt, v);
   const curated = readJson(dataFile('i18n.zh.json')), mt = readJson(dataFile('i18n.mt.json'));
   const pick = (tbl, p, en) => own(tbl, p) && own(own(tbl, p), en);
-  const resolveI18n = (p, en) => pick(curated, p, en) ?? own(human, en) ?? rules.tr(en) ?? pick(mt, p, en);
+  const resolveI18n = (p, en) => own(models.names, en) ?? pick(curated, p, en) ?? own(human, en) ?? models.translateModelDescription(en) ?? rules.tr(en) ?? pick(mt, p, en);
   return { str, human, curated, mt, resolveI18n };
 }
 
