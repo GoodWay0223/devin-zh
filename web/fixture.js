@@ -48,9 +48,15 @@ function buildFixture() {
 <div id="user-session-time">7 days ago</div><div id="user-session-state">Working</div>
 <div data-slot="sidebar-space"><button id="user-space-name">Cloud settings</button></div>
 </div></div></aside>
-<div role="tree"><button id="user-file-name" title="Read private.txt">Read private.txt</button></div>
+<div role="tree" data-testid="file-tree"><button id="user-file-name" title="Read private.txt">Read private.txt</button></div>
 <aside data-slot="sidebar-content"><a id="known-settings-sidebar" href="/org/example/settings/general">General</a></aside>
 <aside data-slot="sidebar-content" id="late-settings-sidebar"></aside>
+<div data-slot="sidebar-content-wrapper"><div data-slot="sidebar-content">
+<a id="mixed-general" href="/org/example/settings/general">General</a><button id="mixed-open-settings">Open settings</button><a href="https://example.com/help">External help link</a>
+<p id="mixed-description">Manage your Devin Desktop API keys and privacy settings.</p>
+<button id="mixed-user-title">Review</button><div data-slot="sidebar-space"><button id="mixed-space-title">Cloud settings</button></div>
+</div></div>
+<section role="tree" data-session-id="layout-only"><button id="universal-tree-ui">Wiki</button><p id="universal-session-description">Manage your Devin Desktop API keys and privacy settings.</p></section>
 </section><section id="capability-fixture"><h2>能力和模型说明</h2>
 <div role="menu"><button role="menuitem" id="capability-normal">Normal</button><button role="menuitem" id="capability-fusion">Fusion</button><button role="menuitem" id="capability-ultra">Ultra</button><button role="menuitem" id="capability-lite">Lite</button><button role="menuitem" id="mode-agent">Agent</button><button role="menuitem" id="model-name">GPT-6.1 Sol</button></div>
 <p id="fusion-description">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</p>
@@ -121,6 +127,10 @@ check('会话名称及描述属性保持原文',el('user-session-name').textCont
 check('会话状态时间和空间名称也不处理',el('user-session-time').textContent==='7 days ago'&&el('user-session-state').textContent==='Working'&&el('user-space-name').textContent==='Cloud settings');
 check('用户文件树名称和属性不处理',el('user-file-name').textContent==='Read private.txt'&&el('user-file-name').title==='Read private.txt');
 check('纯固定设置导航不被会话区域排除',el('known-settings-sidebar').textContent==='通用');
+check('混合通用侧栏中的已知导航和普通设置按钮继续翻译',el('mixed-general').textContent==='通用'&&el('mixed-open-settings').textContent==='打开设置');
+check('共享侧栏中的普通设置说明继续汉化',el('mixed-description').textContent==='管理 Devin 桌面版的 API 密钥和隐私设置。');
+check('混合侧栏里的用户名称和空间内容仍受保护',el('mixed-user-title').textContent==='Review'&&el('mixed-space-title').textContent==='Cloud settings');
+check('通用 tree/session-id 布局标记不会封掉固定界面',el('universal-tree-ui').textContent==='知识库'&&el('universal-session-description').textContent==='管理 Devin 桌面版的 API 密钥和隐私设置。');
 el('dynamic-attr').setAttribute('title','Full width');el('dynamic-attr').setAttribute('aria-label','Session info');
 el('wiki').firstChild.nodeValue='Customize';
 el('normal-description').firstChild.nodeValue='Balances cost and intelligence with models like NextModel 7.2 and GPT-8 Sol';

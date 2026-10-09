@@ -12,4 +12,4 @@
 - Acorn 由 package-lock.json 固定。不要仅依赖未来可能被应用移除的内置依赖。
 - 网页油猴的原始导出备份在 `web/upstream`；引擎/构建在 `web/runtime.js` 和 `web/build.js`。人工词典 `data/web-reviewed.zh.json` / `data/web-shortcuts.zh.json` / `data/web-settings.zh.json` 与客户端共用。不要编辑生成的脚本作为唯一维护入口；不把 DOM 翻译扩展到用户输入、聊天/记忆正文、代码和终端。不申请新权限或注入桌面跨源 iframe。
 - 公开发布流程见 CONTRIBUTING.md；同步源码与根目录 `dist/` 的生成副本，保留上游原始字节及许可。`.devin-zh.local.json`、本机缓存、安装文件、语言包和账号资料不能入库；发布包只打包已审查的版本控制源码。
-- 网页性能修改需检查 observer/入队/遍历入口的用户区域排除、流式更新、重复挂载与队列突发；不得恢复满队列全 body 扫描。用户会话侧栏、项目/文件夹/文件名称、消息区域及属性保持原样。模拟和独立 DOM 指标不能冒充登录页加载耗时/FPS。
+- 网页性能修改需检查 observer/入队/遍历入口、流式更新、重复挂载与队列突发；不得恢复满队列全 body 扫描。保护具体用户行/名称/内容，不用通用 sidebar wrapper、role=tree 或 data-session-id 整块拒绝布局；回归须包含导航、普通 UI 按钮、外链与用户内容共享父容器的场景。模拟和独立 DOM 指标不能冒充登录页效果或加载耗时/FPS。

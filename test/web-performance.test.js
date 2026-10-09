@@ -34,7 +34,7 @@ function matches(element, selector) {
   });
 }
 
-function browser({idle = false} = {}) {
+function browser({raf = true} = {}) {
   const timers = new Map(), observers = [], cancelled = [], walks = [];
   let timerId = 0;
   class Node {
@@ -46,6 +46,9 @@ function browser({idle = false} = {}) {
   }
   class Element extends Node {
     constructor(tag, attrs = {}) { super(1); this.tagName = tag; this.attributes = new Map(Object.entries(attrs)); this.childNodes = []; }
+    get children() { return this.childNodes.filter(node => node.nodeType === 1); }
+    get childElementCount() { return this.children.length; }
+    get textContent() { return this.childNodes.map(node => node.nodeType === 3 ? node.nodeValue : node.textContent).join(''); }
     getAttribute(name) { return this.attributes.get(name) ?? null; }
     hasAttribute(name) { return this.attributes.has(name); }
     setAttribute(name, value) { this.attributes.set(name, String(value)); }
@@ -96,9 +99,9 @@ function browser({idle = false} = {}) {
       }
     }
   };
-  if (idle) {
-    win.requestIdleCallback = (fn, options) => schedule(fn, 'idle', options.timeout);
-    win.cancelIdleCallback = id => cancel(id, 'idle');
+  if (raf) {
+    win.requestAnimationFrame = fn => schedule(fn, 'raf');
+    win.cancelAnimationFrame = id => cancel(id, 'raf');
   }
   function drain() {
     let runs = 0;
@@ -106,7 +109,7 @@ function browser({idle = false} = {}) {
       assert.ok(++runs < 1000, 'translator work should converge instead of continuously rescheduling');
       const [id, timer] = timers.entries().next().value;
       timers.delete(id);
-      timer.callback(timer.kind === 'idle' ? {didTimeout: false, timeRemaining: () => 50} : undefined);
+      timer.callback(timer.kind === 'raf' ? win.performance.now() : undefined);
     }
     return runs;
   }
@@ -127,13 +130,13 @@ test('protected streaming text, attributes and inserted children do no regex or 
     page.element('div', {'data-testid': 'transcript-agent-message'}),
     page.element('div', {'data-testid': 'transcript-user-message'}),
     page.element('div', {'data-slot': 'sidebar-space'}),
-    page.element('div', {role: 'tree'}),
-    page.element('div', {'data-session-id': 'session-one'}),
+    page.element('div', {'data-testid': 'file-tree'}),
+    page.element('div', {'data-testid': 'project-tree'}),
     page.element('a', {href: '/sessions/custom-session-name?tab=browser'}),
     page.element('button', {'data-flash-channel': 'tab:file-one'}),
     page.element('div', {class: 'prose-main'})
   ];
-  const scrolling = page.element('div', {'data-slot': 'sidebar-content'});
+  const scrolling = page.element('div', {'data-testid': 'session-list'});
   scrolling.append(page.element('a', {href: '/sessions/session-two'}));
   roots.push(scrolling);
   const targets = roots.map(root => {
@@ -190,7 +193,7 @@ test('bursts larger than 200 UI nodes stay local and never requeue a full body s
 });
 
 test('mounting twice disconnects the previous observer and cancels its scheduled work', () => {
-  const page = browser({idle: true});
+  const page = browser();
   const first = mountDevinZh(page.win, {}, []);
   const firstScheduled = page.timers.keys().next().value;
   const second = mountDevinZh(page.win, {}, []);
@@ -198,14 +201,54 @@ test('mounting twice disconnects the previous observer and cancels its scheduled
   assert.equal(page.observers[0].connected, false);
   assert.equal(page.observers[0].disconnects, 1);
   assert.equal(page.observers[1].connected, true);
-  assert.ok(page.cancelled.some(item => item.id === firstScheduled && item.kind === 'idle'));
+  assert.ok(page.cancelled.some(item => item.id === firstScheduled && item.kind === 'raf'));
   assert.equal(page.timers.size, 1);
   assert.equal(first.getStats().pending, 0);
+  const instanceKey = Object.keys(page.win).find(key => page.win[key] === second);
+  assert.ok(instanceKey, 'the current instance should be registered under a string window property');
   first.dispose();
-  assert.equal(page.win[Symbol.for('GoodWay0223/devin-zh:dom-translator')], second);
+  assert.equal(page.win[instanceKey], second);
   second.dispose();
   assert.equal(page.timers.size, 0);
-  assert.equal(page.win[Symbol.for('GoodWay0223/devin-zh:dom-translator')], undefined);
+  assert.equal(page.win[instanceKey], undefined);
+});
+
+test('mixed sidebar wrappers keep fixed navigation and UI actions without translating user subtrees', () => {
+  for (const attributes of [
+    {'data-slot': 'sidebar-content-wrapper'},
+    {'data-slot': 'sidebar-content'},
+    {'data-slot': 'sidebar-content-wrapper', role: 'tree', 'data-session-id': 'active-session'}
+  ]) {
+    const page = browser(), wrapper = page.element('div', attributes);
+    const general = page.element('a', {href: '/org/example/settings/general'}), generalText = page.text('General');
+    general.append(generalText);
+    const action = page.element('button'), actionText = page.text('Open settings'); action.append(actionText);
+    const external = page.element('a', {href: 'https://example.com/private-project'}), externalText = page.text('Project Alpha');
+    external.append(externalText);
+    const unnamedProject = page.element('button', {title: 'Open settings'}), unnamedProjectText = page.text('Review');
+    unnamedProject.append(unnamedProjectText);
+    const status = page.element('span'), statusText = page.text('Recognized 10'); status.append(statusText);
+    const projectTree = page.element('div', {'data-testid': 'project-tree'}), projectButton = page.element('button');
+    const projectText = page.text('Cloud settings'); projectButton.append(projectText); projectTree.append(projectButton);
+    wrapper.append(general, action, external, unnamedProject, status, projectTree); page.body.append(wrapper);
+    const counted = countingRules();
+    const translator = mountDevinZh(page.win, {
+      General: '常规', 'Open settings': '打开设置', 'Project Alpha': '不应翻译的项目', 'Cloud settings': '云端设置', Review: '代码审查'
+    }, counted.rules);
+    page.drain();
+    assert.equal(generalText.nodeValue, '常规');
+    assert.equal(actionText.nodeValue, '打开设置');
+    assert.equal(externalText.nodeValue, 'Project Alpha');
+    assert.equal(unnamedProjectText.nodeValue, 'Review');
+    assert.equal(unnamedProject.getAttribute('title'), 'Open settings');
+    assert.equal(statusText.nodeValue, 'Recognized 10');
+    assert.equal(projectText.nodeValue, 'Cloud settings');
+    assert.equal(counted.count(), 0, 'unknown sidebar status leaves should be excluded before regex matching');
+    const dynamic = page.element('button'), dynamicText = page.text('Open settings'); dynamic.append(dynamicText); wrapper.append(dynamic);
+    page.observers[0].emit([{type: 'childList', target: wrapper, addedNodes: [dynamic]}]); page.drain();
+    assert.equal(dynamicText.nodeValue, '打开设置');
+    translator.dispose();
+  }
 });
 
 test('translation caching avoids repeated regex scans and evicts older input under sustained variety', () => {
@@ -248,8 +291,8 @@ test('own text and attribute writes are ignored, but an English rerender is tran
   translator.dispose();
 });
 
-test('dispose cancels the fallback timer when requestIdleCallback is unavailable', () => {
-  const page = browser();
+test('dispose cancels the fallback timer when requestAnimationFrame is unavailable', () => {
+  const page = browser({raf: false});
   const translator = mountDevinZh(page.win, {}, []);
   const [scheduled, timer] = page.timers.entries().next().value;
   assert.equal(timer.kind, 'timeout');

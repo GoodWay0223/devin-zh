@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
-// @version      1.0.11
+// @version      1.0.12
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @match        https://app.devin.ai/*
@@ -49,7 +49,7 @@ SOFTWARE.
 if (location.protocol !== "https:" || !["app.devin.ai", "app.beta.devin.ai"].includes(location.hostname)) return;
 function mountDevinZh(win, dictionary, rules) {
   const doc = win.document;
-  const instanceKey = Symbol.for('GoodWay0223/devin-zh:dom-translator');
+  const instanceKey = '__devinZhDomTranslator';
   const previous = win[instanceKey];
   if (previous && typeof previous.dispose === 'function') previous.dispose();
   const attrs = ['placeholder', 'title', 'aria-label', 'alt', 'data-placeholder'];
@@ -62,13 +62,11 @@ function mountDevinZh(win, dictionary, rules) {
     '[data-testid*="message-content"]', '[data-testid*="terminal-output"]',
     '[data-testid*="repository-name"]', '[data-testid*="session-title"]', '[data-user-content]',
     '[data-testid="transcript-user-message"]', '[data-testid="transcript-agent-message"]', '[data-message-id]',
-    '[data-slot="sidebar-space"]', '[role="tree"]', '[data-session-id]',
+    '[data-slot="sidebar-space"]', '[data-testid="file-tree"]', '[data-testid="project-tree"]',
     '[data-testid="session-list"]', '[data-testid="sessions-list"]',
     '[data-testid*="project-name"]', '[data-testid*="folder-name"]'
   ].join(',');
   const sidebarContent = '[data-slot="sidebar-content"], [data-slot="sidebar-content-wrapper"]';
-  let sidebarUi = new WeakMap();
-  let sidebarRoute = win.location?.pathname;
   const textWrites = new WeakMap(), attributeWrites = new WeakMap();
   const cache = new Map();
   const stats = { visitedNodes: 0, ruleTests: 0, ignoredMutations: 0, flushes: 0, longestFlushMs: 0, fullRootScans: 0, highWater: 0 };
@@ -95,23 +93,42 @@ function mountDevinZh(win, dictionary, rules) {
     return link && /\/(?:sessions\/[^/?#]+|review\/.+\/pull\/\d+|org\/[^/]+\/automations\/[^/?#]+)(?:[/?#]|$)/i.test(link.getAttribute('href'));
   };
 
-  function userSidebar(element) {
+  const fixedSidebarActions = new Set(['New session', 'New Session', 'Search', 'Search sessions', 'Search your sessions',
+    'Open settings', 'Settings', 'Customize', 'Show sidebar', 'Hide sidebar', 'Toggle sidebar',
+    'Expand sidebar', 'Collapse sidebar', 'Add space', 'Add folder', 'New folder', 'New project',
+    'Filter', 'Filters', 'Properties', 'Help', 'Save', 'Cancel', 'Done', 'Apply']);
+  const fixedSidebarGroups = new Set(['Sessions', 'Recent', 'Personal', 'Organization']);
+  const fixedActionLabels = new Set(Array.from(fixedSidebarActions).flatMap(en => [en, dictionary[en]]).filter(Boolean));
+  const fixedGroupLabels = new Set(Array.from(fixedSidebarGroups).flatMap(en => [en, dictionary[en]]).filter(Boolean));
+  function userSidebarLeaf(element) {
     const content = element.closest(sidebarContent);
     if (!content) return false;
-    // The app puts session/project/folder rows in its scrolling sidebar content.
-    // Only an exclusively known settings/navigation link list is eligible UI.
-    if (!sidebarUi.has(content)) {
-      const links = content.querySelectorAll('a[href]');
-      const buttons = content.querySelectorAll('button, [role="button"]');
-      const userMarker = content.querySelector('[data-slot="sidebar-space"], [role="tree"], [data-session-id]');
-      sidebarUi.set(content, !userMarker && links.length > 0 &&
-        Array.from(links).every(link => knownUiHref(link.getAttribute('href'))) &&
-        Array.from(buttons).every(button => knownUiContainer(button)));
+    // These are shared layout containers, not proof that their entire subtree
+    // is user content. Keep walking them; classify only individual rows/leaves.
+    if (element.matches(sidebarContent) || knownUiContainer(element)) return false;
+    // Unknown sidebar links can be user projects; leave the individual link
+    // unchanged without rejecting its surrounding layout or fixed navigation.
+    if (element.closest('a[href]')) return true;
+    const row = element.closest('[data-slot="sidebar-menu-item"], [data-slot="sidebar-menu-button"], [data-slot="sidebar-label-row"]');
+    if (row && Array.from(row.querySelectorAll('a[href]')).some(link =>
+      /\/sessions\/[^/?#]+(?:[/?#]|$)/i.test(link.getAttribute('href')))) return true;
+    const button = element.closest('button, [role="button"]');
+    if (button) {
+      const label = (button.getAttribute('aria-label') || button.textContent || '').trim();
+      return !fixedActionLabels.has(label);
     }
-    return !sidebarUi.get(content);
+    if (!element.children.length) {
+      const label = (element.textContent || '').trim();
+      if (!label || fixedActionLabels.has(label) || fixedGroupLabels.has(label)) return false;
+      // A shared settings pane can contain ordinary descriptions as well.
+      // Exclude a specific unknown user row or session metadata, not every leaf.
+      if (row || /^(?:Working(?:\s+.*)?|\d+\s+(?:seconds?|minutes?|hours?|days?|weeks?|months?|years?)\s+ago|\d+[smhd]\s+ago)$/i.test(label)) return true;
+      return !element.matches('p, h1, h2, h3, h4, h5, h6, label');
+    }
+    return false;
   }
   function blockedElement(element) {
-    if (!element || element.closest(hardProtected) || userSidebar(element)) return true;
+    if (!element || element.closest(hardProtected) || userSidebarLeaf(element)) return true;
     const optOut = element.closest('[translate="no"]');
     if (optOut && !(optOut.matches(slateInput) && (optOut === element || fixedInputPlaceholder(element)))) return true;
     const sessionLink = element.closest('a[href]');
@@ -125,7 +142,7 @@ function mountDevinZh(win, dictionary, rules) {
     return !!element && !blockedElement(element);
   }
   function pruneElement(element) {
-    if (element.matches(hardProtected) || userSidebar(element)) return true;
+    if (element.matches(hardProtected) || userSidebarLeaf(element)) return true;
     if (element.matches('[translate="no"]') && !element.matches(slateInput)) return true;
     // Keep the real Slate placeholder exception; never enter ordinary editors.
     if (element.matches('[contenteditable]:not([contenteditable="false"]), [role="textbox"]') &&
@@ -210,12 +227,12 @@ function mountDevinZh(win, dictionary, rules) {
   const pending = new Set();
   let active = null;
   let scheduled = null;
-  let idleScheduled = false;
+  let animationScheduled = false;
   let disposed = false;
   const scheduleFrame = () => {
     if (disposed || scheduled !== null) return;
-    idleScheduled = typeof win.requestIdleCallback === 'function';
-    scheduled = idleScheduled ? win.requestIdleCallback(flush, {timeout: 250}) : win.setTimeout(flush, 16);
+    animationScheduled = typeof win.requestAnimationFrame === 'function';
+    scheduled = animationScheduled ? win.requestAnimationFrame(flush) : win.setTimeout(flush, 16);
   };
   function enqueue(node) {
     if (!node || !node.isConnected || disposed || !eligible(node)) return;
@@ -235,14 +252,13 @@ function mountDevinZh(win, dictionary, rules) {
     if (node.nodeType === 3) translateText(node);
     else if (node.nodeType === 1) translateAttributes(node);
   }
-  function flush(deadline) {
+  function flush() {
     scheduled = null;
     if (disposed) return;
     const start = win.performance.now();
     stats.flushes++;
     let count = 0;
-    while (count < 128 && win.performance.now() - start < 3 &&
-      (!deadline || deadline.didTimeout || deadline.timeRemaining() > 1)) {
+    while (count < 128 && win.performance.now() - start < 3) {
       if (!active) {
         const root = pending.values().next().value;
         if (!root) break;
@@ -269,21 +285,8 @@ function mountDevinZh(win, dictionary, rules) {
   }
 
   const observer = new win.MutationObserver(mutations => {
-    if (sidebarRoute !== win.location?.pathname) { sidebarRoute = win.location?.pathname; sidebarUi = new WeakMap(); }
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
-        const element = mutation.target.nodeType === 1 ? mutation.target : mutation.target.parentElement;
-        const content = element && element.closest(sidebarContent);
-        // User lists remain excluded during streaming. Re-classify eligible UI
-        // sidebars after structural changes, not the whole user list on every edit.
-        if (content) {
-          const addedUiLink = Array.from(mutation.addedNodes).some(node => {
-            if (node.nodeType !== 1) return false;
-            const link = node.matches('a[href]') ? node : node.querySelector('a[href]');
-            return link && knownUiHref(link.getAttribute('href'));
-          });
-          if (sidebarUi.get(content) === true || addedUiLink) sidebarUi.delete(content);
-        }
         if (!eligible(mutation.target)) { stats.ignoredMutations++; continue; }
         for (const node of mutation.addedNodes) enqueue(node);
       } else if (mutation.type === 'characterData') {
@@ -308,7 +311,7 @@ function mountDevinZh(win, dictionary, rules) {
       disposed = true;
       observer.disconnect();
       if (scheduled !== null) {
-        if (idleScheduled) win.cancelIdleCallback(scheduled); else win.clearTimeout(scheduled);
+        if (animationScheduled) win.cancelAnimationFrame(scheduled); else win.clearTimeout(scheduled);
       }
       pending.clear(); cache.clear(); active = null; scheduled = null;
       if (win[instanceKey] === instance) delete win[instanceKey];
@@ -1598,6 +1601,7 @@ const dictionary = {
  "New ticket": "新建工单",
  "Assign ticket": "分配工单",
  "Toggle board agent": "切换看板智能体",
+ "Open settings": "打开设置",
  "Customize": "自定义",
  "Customization": "自定义配置",
  "Local Settings": "本地设置",
