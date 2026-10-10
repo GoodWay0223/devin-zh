@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const {DatabaseSync} = require('node:sqlite');
-const {status,mute,undo} = require('../scripts/integrity-notice');
+const {status,mute,undo,enableChoice} = require('../scripts/integrity-notice');
 const KEY = 'integrityService', MARKER = '__$__targetStorageMarker';
 function fixture(t,marker={otherSetting:0}) {
   const root = fs.mkdtempSync(path.join(os.tmpdir(),'devin-notice-test-'));
@@ -66,4 +66,37 @@ test('repeating an already muted native preference does no writes',t=>{
   assert.equal(mute(options).changed,false);
   assert.deepEqual(fs.readFileSync(options.dbFile),bytes);
   assert.equal(fs.readdirSync(options.backupRoot).length,count);
+});
+test('native choice adds only the help URL; checksums and notice preference remain unchanged',t=>{
+  const options=fixture(t);options.productFile=path.join(path.dirname(options.dbFile),'product.json');
+  const product={commit:options.commit,checksums:{'bundle.js':'official hash'},nameShort:'Devin',other:{keep:true}};
+  const original=JSON.stringify(product,null,2)+'\n';fs.writeFileSync(options.productFile,original);
+  const result=enableChoice(options), after=JSON.parse(fs.readFileSync(options.productFile,'utf8'));
+  assert.equal(result.choiceEnabled,true);
+  assert.match(after.checksumFailMoreInfoUrl,/^https:\/\/github\.com\/GoodWay0223\/devin-zh\//);
+  delete after.checksumFailMoreInfoUrl;assert.deepEqual(after,product);
+  assert.equal(fs.readFileSync(path.join(result.backup,'product.json'),'utf8'),original);
+  assert.equal(read(options.dbFile,KEY),null);
+});
+test('an existing native help link is preserved and enabling choice is idempotent',t=>{
+  const options=fixture(t);options.productFile=path.join(path.dirname(options.dbFile),'product.json');
+  const original=JSON.stringify({checksumFailMoreInfoUrl:'https://vendor.example/help',checksums:{a:'b'}});
+  fs.writeFileSync(options.productFile,original);
+  const result=enableChoice(options);
+  assert.equal(result.changed,false);assert.equal(result.url,'https://vendor.example/help');
+  assert.equal(fs.readFileSync(options.productFile,'utf8'),original);
+  assert.equal(fs.existsSync(options.backupRoot),false);
+});
+test('running app prevents enabling the native choice',t=>{
+  const options=fixture(t);options.productFile=path.join(path.dirname(options.dbFile),'product.json');
+  fs.writeFileSync(options.productFile,'{}');options.assertStopped=()=>{throw new Error('app running');};
+  assert.throws(()=>enableChoice(options),/app running/);
+  assert.equal(fs.readFileSync(options.productFile,'utf8'),'{}');
+});
+test('concurrent product changes are preserved instead of overwritten',t=>{
+  const options=fixture(t);options.productFile=path.join(path.dirname(options.dbFile),'product.json');
+  fs.writeFileSync(options.productFile,'{}');let calls=0;
+  options.assertStopped=()=>{if(++calls===2)fs.writeFileSync(options.productFile,'{"newVendorBuild":true}');};
+  assert.throws(()=>enableChoice(options),/后来已改变/);
+  assert.equal(fs.readFileSync(options.productFile,'utf8'),'{"newVendorBuild":true}');
 });

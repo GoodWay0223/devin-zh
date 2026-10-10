@@ -1,10 +1,11 @@
 'use strict';
-// Set Devin's native per-commit "Don't Show Again" display preference.
-// Integrity checks, logs, application files and product checksums are untouched.
+// Expose Devin's native choice and manage its per-commit display preference.
+// enable-choice changes only a help URL, never integrity code or checksums.
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const KEY = 'integrityService', TARGETS = '__$__targetStorageMarker';
+const CHOICE_URL = 'https://github.com/GoodWay0223/devin-zh/blob/master/docs/desktop.md';
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
 const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 function open(file, readOnly) {
@@ -83,6 +84,28 @@ function undo({manifestFile,dbFile,backupRoot,assertStopped}) {
   } catch(error) { if(transaction) db.exec('ROLLBACK'); throw error; }
   finally {db.close();}
 }
+function enableChoice({productFile,backupRoot,assertStopped}) {
+  assertStopped();
+  const before = fs.readFileSync(productFile), product = JSON.parse(before);
+  if (typeof product.checksumFailMoreInfoUrl === 'string' && product.checksumFailMoreInfoUrl.trim())
+    return {changed:false,choiceEnabled:true,url:product.checksumFailMoreInfoUrl};
+  const directory = path.join(backupRoot,'choice-'+new Date().toISOString().replace(/[:.]/g,'-')+'-'+crypto.randomBytes(4).toString('hex'));
+  fs.mkdirSync(directory,{recursive:true});
+  fs.writeFileSync(path.join(directory,'product.json'),before,{flag:'wx'});
+  const after = Buffer.from(JSON.stringify({...product,checksumFailMoreInfoUrl:CHOICE_URL},null,2)+'\n');
+  const record = {schema:1,productFile:path.resolve(productFile),beforeHash:hash(before),afterHash:hash(after),
+    addedField:'checksumFailMoreInfoUrl',url:CHOICE_URL};
+  fs.writeFileSync(path.join(directory,'choice-backup.json'),JSON.stringify(record,null,2)+'\n',{flag:'wx'});
+  const temporary = productFile+'.devin-notice-'+crypto.randomBytes(4).toString('hex');
+  try {
+    fs.writeFileSync(temporary,after,{flag:'wx',mode:fs.statSync(productFile).mode});
+    assertStopped();
+    if (hash(fs.readFileSync(productFile)) !== hash(before)) throw new Error('程序元数据后来已改变，未覆盖');
+    fs.renameSync(temporary,productFile);
+    if (hash(fs.readFileSync(productFile)) !== hash(after)) throw new Error('元数据写入校验失败');
+  } finally {if(fs.existsSync(temporary)) fs.unlinkSync(temporary);}
+  return {changed:true,choiceEnabled:true,url:CHOICE_URL,backup:directory};
+}
 function main() {
   const C = require('../src/core'), I = require('../src/install');
   const baseline = I.loadBaseline({root:C.ROOT});
@@ -91,20 +114,24 @@ function main() {
   const source = fs.readFileSync(path.join(C.ROOT,'out/vs/workbench/workbench.desktop.main.js'),'utf8');
   const keyPosition = source.indexOf('this.KEY="integrityService"');
   const storageCode = source.slice(keyPosition,keyPosition+450);
+  const integrityCode = source.slice(keyPosition,keyPosition+4500);
+  const choiceBranch = /_showNotification\(\)\{let (\w+)=this\.productService\.checksumFailMoreInfoUrl,[\s\S]{0,200}?\1\?this\.notificationService\.prompt\([\s\S]{0,1500}?isSecondary:!0,[\s\S]{0,500}?this\.storage\.set\(\{dontShowPrompt:!0,commit:this\.productService\.commit\}\)/;
   if (keyPosition < 0 || !/this\.storageService\.get\(\w+\.KEY,-1\)/.test(storageCode) ||
       !/this\.storageService\.store\(\w+\.KEY,JSON\.stringify\(this\.value\),-1,1\)/.test(storageCode) ||
       !/dontShowPrompt&&\w+\.commit===this\.productService\.commit\|\|this\._showNotification\(\)/.test(source) ||
-      !source.includes('dontShowPrompt:!0,commit:this.productService.commit'))
+      !source.includes('dontShowPrompt:!0,commit:this.productService.commit') || !choiceBranch.test(integrityCode))
     throw new Error('未确认当前版本的原生不再提示机制，未修改');
   if (!process.env.APPDATA) throw new Error('此工具适用于 Windows，缺少 APPDATA');
   const options = {dbFile:path.join(process.env.APPDATA,'Devin','User','globalStorage','state.vscdb'),
     commit:baseline.product.commit,backupRoot:path.resolve(__dirname,'..','cache','notice-preferences'),
+    productFile:path.join(C.ROOT,'product.json'),
     assertStopped:()=>I.assertStopped(C.ROOT)};
   const command = process.argv[2] || 'status';
-  const result = command === 'mute' ? mute(options) : command === 'undo' && process.argv[3]
+  const result = command === 'enable-choice' ? enableChoice(options) : command === 'mute' ? mute(options) : command === 'undo' && process.argv[3]
     ? undo({...options,manifestFile:path.resolve(process.argv[3])}) : command === 'status'
-      ? status(options) : (()=>{throw new Error('用法：node scripts/integrity-notice.js status|mute|undo <restore.json>');})();
+      ? {...status(options),choiceEnabled:!!baseline.product.checksumFailMoreInfoUrl,helpUrl:baseline.product.checksumFailMoreInfoUrl ?? null}
+      : (()=>{throw new Error('用法：node scripts/integrity-notice.js status|enable-choice|mute|undo <restore.json>');})();
   console.log(JSON.stringify(result,null,2));
 }
 if (require.main === module) {try {main();} catch(error) {console.error(error.message);process.exitCode=1;}}
-module.exports={status,mute,undo};
+module.exports={status,mute,undo,enableChoice};
