@@ -11,7 +11,7 @@
 | 操作系统 | Windows |
 | 客户端构建 | Devin Desktop 3.10.48 / VS Code 1.126.0 |
 | 已应用并启动验收的补丁 | 工具 0.3.0，已核对客户端启动及本地界面 |
-| 本次发布的工具 | 0.3.6，本次只修复网页脚本，无需为此重打客户端补丁；Open settings 与客户端已有人工词条一致。0.3.4 已检查、准备、应用及安装校验，尚未完成启动与页面验收 |
+| 本次发布的工具 | 0.3.7，新增原生完整性提示显示偏好工具，汉化补丁逻辑未变，无需重打补丁；0.3.4 已应用及安装校验，用户确认桌面汉化正常 |
 | 其他客户端版本 | 需要重新执行兼容检查及启动验收，没有通用兼容承诺 |
 
 词典可以复用，生成的安装补丁必须对应当前客户端构建。更新 Devin 后不能直接复制旧补丁或旧报告。
@@ -20,7 +20,7 @@
 
 ## 1. 获取工具并指定安装目录
 
-需要 Node.js 22 或更新版本，以及能够正常启动的官方 Devin Desktop。可以下载 [Release](https://github.com/GoodWay0223/devin-zh/releases/latest) 中的客户端工具 ZIP 并解压到长期保留的目录，进入其中的 `devin-zh` 文件夹，执行 `npm ci --ignore-scripts`。也可以使用 Git 克隆，打开 PowerShell：
+需要 Node.js 22.13 或更新版本（推荐 24），以及能够正常启动的官方 Devin Desktop。可以下载 [Release](https://github.com/GoodWay0223/devin-zh/releases/latest) 中的客户端工具 ZIP 并解压到长期保留的目录，进入其中的 `devin-zh` 文件夹，执行 `npm ci --ignore-scripts`。也可以使用 Git 克隆，打开 PowerShell：
 
 ```powershell
 git clone https://github.com/GoodWay0223/devin-zh.git
@@ -118,6 +118,29 @@ node src/cli.js status
 Agent 界面补丁会改变官方完整性检查覆盖的脚本，因此即使文件是工具生成并验证过的补丁，客户端仍可能弹出这条通知。项目保留官方 `product.checksums`，不会伪造校验值或关闭完整性检查。
 
 用 `status` 判断差异来源：如果只有已记录、经过验证的补丁差异，这条提示本身不能证明安装损坏；如果出现未知或缺失的文件，应继续排查。需要恢复官方原版时使用下面的 `restore`。
+
+### 保留汉化，只设置当前构建不再弹窗
+
+Devin 内置 `integrityService` 显示偏好：`dontShowPrompt: true` 仅在 `commit` 与当前构建一致时生效。完整性计算和日志仍会执行，`isPure` 仍会如实反映修改。当前 3.10.48 未设置 `checksumFailMoreInfoUrl`，因此 UI 没有“不再提示”按钮，但启动逻辑仍读取这一原生偏好。
+
+使用 **Node.js 22.13+ 或 24+**。先保存工作并完全退出 Devin，在本项目目录、已指定正确 `DEVIN_APP` 的 PowerShell 中执行：
+
+```powershell
+node scripts/integrity-notice.js status # 只读查看是否已对当前构建静音
+node scripts/integrity-notice.js mute   # 备份后设置原生“此版本不再提示”
+```
+
+工具先核对已验证补丁和全部官方校验项，拒绝未知安装修改/缺失及未确认的原生机制。它只写本机 `User/globalStorage/state.vscdb` 中的原生显示偏好及其机器级存储标记，不改安装文件、官方 checksum 或认证/会话配置。默认 Windows 用户目录为 `%APPDATA%\Devin`；自定义 user-data-dir 不适用此默认路径。
+
+命令打印的 `restore.json` 保存在 `cache/notice-preferences/`，同时保存私有数据库备份。**不要公开上传这些备份。** 下次打开当前构建应不再显示此提示；更新后的 commit 改变会重新显示，须先核对新版安装与补丁。
+
+如要撤销，完全退出 Devin，把命令打印的真实恢复记录路径填入：
+
+```powershell
+node scripts/integrity-notice.js undo '刚打印的 restore.json 完整路径'
+```
+
+撤销只恢复这次显示偏好，保留期间对其他设置的更改；发现该偏好后来已被修改时停止。2026-10-10 本机对 3.10.48 完成备份、设置及回读，安装文件前后哈希相同；尚未以新的启动界面确认弹窗消失。
 
 ## 恢复与中断处理
 

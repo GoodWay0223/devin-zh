@@ -31,7 +31,7 @@ function buildRelease(output=path.join(ROOT,'release-assets')) {
   const changelog = fs.readFileSync(path.join(ROOT,'CHANGELOG.md'),'utf8');
   const section = changelog.split('\n## ').find(part=>part.startsWith(pkg.version+' / '));
   if (!section) throw new Error('Add a CHANGELOG section for the current tool version before publishing.');
-  const notes = `## 下载与安装\n\n- 网页脚本：\`${scriptName}\`，在 Tampermonkey 安装或替换后刷新网页。\n- Windows 客户端汉化工具：\`${zipName}\`，源码工具包，需要 Node.js 22+，解压后 \`npm ci --ignore-scripts\`。不含 Devin 官方程序或微软语言包。\n- 校验下载内容：\`SHA256SUMS\`；网页版词条与来源信息见 \`build-report.json\`。\n\n客户端首次使用先指定 \`DEVIN_APP\`，执行检查和 \`prepare --scope=web\`；完全退出后应用新报告。请阅读仓库的客户端安装及更新指南。\n\n## 本次更新\n\n${section.slice(section.indexOf('\n')+1).trim()}\n`;
+  const notes = `## 下载与安装\n\n- 网页脚本：\`${scriptName}\`，在 Tampermonkey 安装或替换后刷新网页。\n- Windows 客户端汉化工具：\`${zipName}\`，源码工具包，需要 Node.js 22.13+（推荐 24），解压后 \`npm ci --ignore-scripts\`。不含 Devin 官方程序或微软语言包。\n- 校验下载内容：\`SHA256SUMS\`；网页版词条与来源信息见 \`build-report.json\`。\n\n客户端首次使用先指定 \`DEVIN_APP\`，执行检查和 \`prepare --scope=web\`；完全退出后应用新报告。请阅读仓库的客户端安装及更新指南。\n\n## 本次更新\n\n${section.slice(section.indexOf('\n')+1).trim()}\n`;
   fs.writeFileSync(path.join(directory,'RELEASE_NOTES.md'),notes);
   console.log(JSON.stringify({directory,toolVersion:pkg.version,webVersion:built.version,assets:[...assets,'SHA256SUMS']},null,2));
   return {directory,assets};

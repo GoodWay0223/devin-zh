@@ -123,7 +123,7 @@ function status() {
   const patches = checks.filter(x => x.status === 'patch');
   const unexpected = checks.filter(x => ['unknown', 'missing'].includes(x.status));
   console.log(`Devin 官方完整性检查：${checks.filter(x => x.status === 'official').length}/${checks.length} 个文件匹配原版；${patches.length} 个为已验证补丁差异；${unexpected.length} 个未知或缺失。`);
-  if (patches.length) console.log('“安装似乎损坏”提示会由上述汉化差异触发；该提示本身不能证明文件损坏。');
+  if (patches.length) console.log('“安装似乎损坏”提示来源于上述汉化差异；其显示偏好可单独设置，该提示本身不能证明文件损坏。');
   for (const entry of unexpected) console.error('需要排查：' + entry.relative + ' (' + entry.status + ')');
   if (unexpected.length) process.exitCode = 1;
 }
