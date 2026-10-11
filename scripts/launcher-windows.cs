@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Drawing.Drawing2D;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -45,28 +44,12 @@ public class DevinZhWindow : Form {
         button.FlatAppearance.BorderColor=Color.FromArgb(214,222,235); button.BackColor=Color.White;
         Controls.Add(button); return button;
     }
-    static Bitmap ProjectBadge(int size) {
-        var bitmap=new Bitmap(size,size);
-        using(var graphics=Graphics.FromImage(bitmap))
-        using(var shape=new GraphicsPath())
-        using(var blue=new SolidBrush(Color.FromArgb(37,99,235)))
-        using(var white=new SolidBrush(Color.White))
-        using(var font=new Font("Microsoft YaHei UI",size*0.55F,FontStyle.Bold,GraphicsUnit.Pixel))
-        using(var alignment=new StringFormat {Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center}) {
-            graphics.SmoothingMode=SmoothingMode.AntiAlias;
-            float radius=size*0.23F, edge=size-1;
-            shape.AddArc(0,0,radius,radius,180,90);shape.AddArc(edge-radius,0,radius,radius,270,90);
-            shape.AddArc(edge-radius,edge-radius,radius,radius,0,90);shape.AddArc(0,edge-radius,radius,radius,90,90);shape.CloseFigure();
-            graphics.FillPath(blue,shape);
-            graphics.DrawString("汉",font,white,new RectangleF(0,0,size,size),alignment);
-        }
-        return bitmap;
+    static Bitmap ProjectBadge(string directory) {
+        using(var stream=File.OpenRead(Path.Combine(directory,"assets","devin-zh-128.png")))
+        using(var image=Image.FromStream(stream)) return new Bitmap(image);
     }
-    static Icon ProjectIcon() {
-        using(var bitmap=ProjectBadge(128)) {
-            var handle=bitmap.GetHicon();
-            try { return (Icon)Icon.FromHandle(handle).Clone(); } finally {DestroyIcon(handle);}
-        }
+    static Icon ProjectIcon(string directory) {
+        using(var icon=new Icon(Path.Combine(directory,"assets","devin-zh.ico"))) return (Icon)icon.Clone();
     }
     public DevinZhWindow(string directory) {
         SuspendLayout();
@@ -77,8 +60,8 @@ public class DevinZhWindow : Form {
         Text="Devin 汉化工具"; ClientSize=new Size(680,545); StartPosition=FormStartPosition.CenterScreen;
         Font=new Font("Microsoft YaHei UI",10); BackColor=Color.FromArgb(247,249,252);
         FormBorderStyle=FormBorderStyle.FixedDialog; MaximizeBox=false;
-        Icon=ProjectIcon();
-        var badge=new PictureBox {Location=new Point(30,26),Size=new Size(36,36),Image=ProjectBadge(128),SizeMode=PictureBoxSizeMode.Zoom};
+        Icon=ProjectIcon(projectDir);
+        var badge=new PictureBox {Location=new Point(30,26),Size=new Size(36,36),Image=ProjectBadge(projectDir),SizeMode=PictureBoxSizeMode.Zoom};
         Controls.Add(badge);
         LabelAt("Devin 简体中文汉化",78,22,475,42,21);
         LabelAt("v"+version,572,31,85,25);
@@ -105,16 +88,19 @@ public class DevinZhWindow : Form {
             try {Process.Start(new ProcessStartInfo {FileName=repository,UseShellExecute=true});}
             catch(Exception error) {MessageBox.Show(this,"无法打开浏览器，可复制项目地址访问：\n"+repository+"\n\n"+error.Message,"项目 GitHub",MessageBoxButtons.OK,MessageBoxIcon.Information);}
         };
-        var github=new PictureBox {Location=new Point(248,514),Size=new Size(18,18),SizeMode=PictureBoxSizeMode.Zoom,Cursor=Cursors.Hand,AccessibleName="打开项目 GitHub"};
-        using(var stream=File.OpenRead(Path.Combine(projectDir,"assets","github-mark-black.png")))
-        using(var image=Image.FromStream(stream)) github.Image=new Bitmap(image);
-        github.Click+=(s,e)=>openRepository(); Controls.Add(github);
-        var projectLink=new LinkLabel {Text="GitHub · GoodWay0223/devin-zh",Location=new Point(277,511),Size=new Size(376,25),
+        var projectLink=new LinkLabel {Text="GitHub · GoodWay0223/devin-zh",Height=25,Anchor=AnchorStyles.Right|AnchorStyles.Bottom,
             Font=new Font(Font.FontFamily,9),LinkColor=Color.FromArgb(37,99,235),ActiveLinkColor=Color.FromArgb(29,78,216),
-            LinkBehavior=LinkBehavior.HoverUnderline,AccessibleDescription=repository};
-        projectLink.LinkClicked+=(s,e)=>openRepository();Controls.Add(projectLink);
-        var tooltip=new ToolTip();tooltip.SetToolTip(projectLink,repository);tooltip.SetToolTip(github,repository);
-        FormClosed+=(s,e)=>{badge.Image.Dispose();github.Image.Dispose();tooltip.Dispose();};
+            LinkBehavior=LinkBehavior.HoverUnderline,AccessibleDescription=repository,TextAlign=ContentAlignment.MiddleRight,
+            ImageAlign=ContentAlignment.MiddleLeft,Cursor=Cursors.Hand};
+        using(var stream=File.OpenRead(Path.Combine(projectDir,"assets","github-mark-black.png")))
+        using(var image=Image.FromStream(stream)) projectLink.Image=new Bitmap(image,new Size(18,18));
+        projectLink.Width=TextRenderer.MeasureText(projectLink.Text,projectLink.Font).Width+26;
+        projectLink.Location=new Point(ClientSize.Width-30-projectLink.Width,511);
+        projectLink.LinkClicked+=(s,e)=>openRepository();
+        projectLink.MouseClick+=(s,e)=>{if(e.Button==MouseButtons.Left && e.X<26)openRepository();};
+        Controls.Add(projectLink);
+        var tooltip=new ToolTip();tooltip.SetToolTip(projectLink,repository);
+        FormClosed+=(s,e)=>{badge.Image.Dispose();projectLink.Image.Dispose();Icon.Dispose();tooltip.Dispose();};
         AcceptButton=start;
         start.Click+=(s,e)=>{
             if (needNode) {Process.Start("https://nodejs.org/zh-cn/download");return;}
@@ -237,7 +223,6 @@ public class DevinZhWindow : Form {
         }
     }
     [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
-    [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr icon);
     [STAThread] public static void Main(string[] args){
         SetProcessDPIAware();Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
         try {Application.Run(new DevinZhWindow(args.Length>0?args[0]:Environment.GetEnvironmentVariable("DEVIN_ZH_GUI_PROJECT")));}

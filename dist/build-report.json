@@ -1,5 +1,5 @@
 {
-  "version": "1.0.15",
+  "version": "1.0.16",
   "entries": 1582,
   "rules": 104,
   "reviewedCount": 374,
@@ -7,5 +7,5 @@
   "newEntries": 388,
   "updatedTranslations": 14,
   "upstreamSha256": "6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2",
-  "sha256": "0fa7312e53dc0b24b3a1eeff6dbee75b2db62d1563616543ee4deaa2527e6dc9"
+  "sha256": "2054cb2895fd8c1f512067d8dca009b1eb8d30e476ad29507d216e9ba707d265"
 }

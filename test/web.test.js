@@ -1,6 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const vm = require('node:vm');
+const fs = require('node:fs');
+const path = require('node:path');
 const {buildUserscript, loadWebData} = require('../web/build');
 const {buildFixture} = require('../web/fixture');
 const C = require('../src/core');
@@ -14,6 +16,11 @@ test('browser userscript shares reviewed Desktop/navigation translations and pre
   assert.match(built.source,/\/\/ @name\s+Devin 网页端汉化/);
   assert.match(built.source,/\/\/ @namespace\s+https:\/\/github.com\/KawaYiLab\/Devin-Web-Chinese/);
   assert.match(built.source,/\/\/ @grant\s+none/);
+  for (const [tag, size] of [['icon',32],['icon64',64]]) {
+    const value = built.source.match(new RegExp('^// @'+tag+'\\s+data:image/png;base64,([^\\n]+)$','m'));
+    assert.ok(value, 'Shared icon must be embedded in userscript metadata');
+    assert.deepEqual(Buffer.from(value[1],'base64'),fs.readFileSync(path.join(__dirname,'../assets/devin-zh-'+size+'.png')));
+  }
   assert.match(built.source,/\/\/ @downloadURL\s+none/);
   assert.doesNotMatch(built.source,/\/\/ @match\s+https:\/\/\*\./);
   assert.doesNotMatch(built.source,/GM_xmlhttpRequest|fetch\(|innerHTML\s*=/);

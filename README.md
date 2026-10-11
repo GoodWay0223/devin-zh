@@ -10,9 +10,9 @@
 
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
-| **网页油猴脚本** | **1.0.15** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **1.0.15** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
-| **macOS 客户端预览** | **1.0.15** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
+| **网页油猴脚本** | **1.0.16** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **1.0.16** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
+| **macOS 客户端预览** | **1.0.16** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
 
 三端共享一个发布版本，统一从 `package.json` 生成。此前分开编号的版本仍保留在更新记录中。
 
@@ -23,7 +23,7 @@
 适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
 
 1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.15.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.16.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
 3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
 
 覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,582 条精确词条、104 条规则**；相较原版 1.0.7 新增 388 条词条并修订 14 条译文。
@@ -40,13 +40,15 @@
 
 ## 客户端：汉化本地 Agent 界面
 
-**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-1.0.15.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
+**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-1.0.16.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
 
-窗口显示作者 **GoodWay0223**、可点击的 [GitHub 项目地址](https://github.com/GoodWay0223/devin-zh)及 GitHub 链接图标；工具标题栏使用自己的“汉”字图标。旧英文入口仍在源码里兼容旧快捷方式，新 ZIP 只展示中文入口。
+<img src="assets/devin-zh-128.png" width="64" height="64" alt="Devin 汉化工具 A 款图标">
+
+桌面工具与油猴脚本采用同款 **Devin 标志 + 蓝色“中”字角标**。窗口左下角显示作者 **GoodWay0223**，右下角为可点击的 [GitHub 项目地址](https://github.com/GoodWay0223/devin-zh)及 GitHub 图标。油猴图标直接内嵌，不需要联网加载。包内 `assets/devin-zh.ico` 可用于工具快捷方式；macOS 附同款 `devin-zh.icns` 素材，终端预览入口不自动改变 Finder 图标。旧英文入口仍在源码里兼容旧快捷方式，新 ZIP 只展示中文入口。
 
 按钮入口面向常规 Windows 10/11 环境，需要 PowerShell、Windows Script Host 和 .NET Framework 可用；系统禁止运行脚本或缺少组件时可能无法启动。Windows 支持下限也受 [Node.js 平台要求](https://github.com/nodejs/node/blob/v22.x/BUILDING.md#platform-list)限制，.NET 随系统提供的版本见 [Microsoft 文档](https://learn.microsoft.com/en-us/dotnet/framework/install/versions-and-dependencies)。工具会校验当前 Devin 的资源结构，未知版本不能保证直接应用；实机验证范围见下表。
 
-**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-1.0.15.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
+**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-1.0.16.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
 
 以下命令适用于想自行操作的 Windows 用户，需要正常工作的官方 Devin Desktop：
 
@@ -113,7 +115,7 @@ node src/cli.js status
 | 网页 DOM 回归 | 当前源码在真实 Chrome 的独立验证页 72 项通过；20,000 次正文/会话更新不增加遍历或规则执行，不是 Devin 列表加载验收 |
 | 登录态网页检查 | 本次巡查 Recent 在两种排序下均为空，控制台有登录令牌错误；1.0.13 尚未替换用户油猴后验收，不能声称 Recent 数据加载已恢复 |
 | 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
-| 本次客户端工具 | 1.0.15 增加作者/项目链接/图标和中文入口，安装逻辑沿用 0.4.0；0.4.0 真实 Windows 窗口完成自动定位、资源取得与 5/5 步准备。macOS 仍仅检查预览 |
+| 本次客户端工具 | 1.0.16 统一 A 款图标、链接移到右下角，安装逻辑沿用 0.4.0；0.4.0 真实 Windows 窗口完成自动定位、资源取得与 5/5 步准备。macOS 仍仅检查预览 |
 
 检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
 

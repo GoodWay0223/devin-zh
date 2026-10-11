@@ -2,9 +2,17 @@ $ErrorActionPreference = 'Stop'
 $guiProject = $env:DEVIN_ZH_GUI_PROJECT
 if (-not $guiProject) { throw 'Missing GUI project directory' }
 $guiSourceFile = Join-Path $guiProject 'scripts/launcher-windows.cs'
+$guiIconFile = Join-Path $guiProject 'assets/devin-zh.ico'
 $guiHasher = [Security.Cryptography.SHA256]::Create()
-try { $guiSourceHash = [BitConverter]::ToString($guiHasher.ComputeHash([IO.File]::ReadAllBytes($guiSourceFile))).Replace('-', '').ToLowerInvariant() }
-finally { $guiHasher.Dispose() }
+$guiInputs = New-Object IO.MemoryStream
+try {
+  foreach ($guiInputFile in @($guiSourceFile, $guiIconFile)) {
+    $guiInputBytes = [IO.File]::ReadAllBytes($guiInputFile)
+    $guiInputs.Write($guiInputBytes, 0, $guiInputBytes.Length)
+  }
+  $guiInputs.Position = 0
+  $guiSourceHash = [BitConverter]::ToString($guiHasher.ComputeHash($guiInputs)).Replace('-', '').ToLowerInvariant()
+} finally { $guiInputs.Dispose(); $guiHasher.Dispose() }
 $guiDirectory = Join-Path $guiProject ('cache/gui/' + $guiSourceHash)
 $guiExecutable = Join-Path $guiDirectory 'DevinZh.exe'
 if (-not (Test-Path -LiteralPath $guiExecutable)) {
@@ -13,7 +21,7 @@ if (-not (Test-Path -LiteralPath $guiExecutable)) {
   $guiParameters = New-Object CodeDom.Compiler.CompilerParameters
   $guiParameters.GenerateExecutable = $true
   $guiParameters.OutputAssembly = $guiExecutable
-  $guiParameters.CompilerOptions = '/target:winexe'
+  $guiParameters.CompilerOptions = '/target:winexe /win32icon:"' + $guiIconFile + '"'
   foreach ($guiReference in @('System.dll','System.Core.dll','System.Windows.Forms.dll','System.Drawing.dll','System.Web.Extensions.dll')) { [void]$guiParameters.ReferencedAssemblies.Add($guiReference) }
   try {
     $guiResult = $guiCompiler.CompileAssemblyFromFile($guiParameters, @($guiSourceFile))

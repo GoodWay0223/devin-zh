@@ -47,7 +47,9 @@ function preflight() {
     'START_HERE.md','Start-Windows.cmd','Start-macOS.command','scripts/launcher.js',
     'scripts/windows-installation.js','scripts/launcher-backups.js','scripts/language-pack.js','scripts/gui-backend.js',
     'Start-Windows.vbs','scripts/launcher-windows.cs','scripts/build-windows-gui.ps1',
-    '汉化工具-Start-Windows.vbs','汉化工具-Start-Windows.cmd','汉化工具-Start-macOS.command','assets/github-mark-black.png']) {
+    '汉化工具-Start-Windows.vbs','汉化工具-Start-Windows.cmd','汉化工具-Start-macOS.command','assets/github-mark-black.png',
+    'assets/devin-zh-master.png','assets/devin-zh.png','assets/devin-zh-32.png','assets/devin-zh-64.png',
+    'assets/devin-zh-128.png','assets/devin-zh.ico','assets/devin-zh.icns','assets/README.md','scripts/export-icons.py']) {
     if (!files.includes(file)) problems.push('Required publication file is not tracked: ' + file);
   }
   const built = buildUserscript();

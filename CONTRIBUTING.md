@@ -38,3 +38,5 @@ node web/serve-fixture.js
 发布工具包不重新分发 Devin 官方程序或微软语言包。升级工具时保留原有本机安装缓存，重新生成准备报告。
 
 Windows 图形入口源码是 `scripts/launcher-windows.cs`，系统 .NET Framework 在本机缓存生成窗口；后台协议在 `scripts/gui-backend.js`，CLI `--progress` 发出真实步骤事件。语言包获取在 `scripts/language-pack.js`，只从微软获取翻译数据、严格匹配版本，不执行扩展。进度不能编造预计百分比；GUI 改动要做真实窗口及准备/退出/应用边界验收。`cache/gui/`、语言包和日志不得发布。
+
+共享图标母版与导出格式在 `assets/`，维护方法见 [图标说明](assets/README.md)。Windows 生成程序的缓存指纹包含源码及 ICO；网页构建将 32/64px PNG 内嵌为脚本元数据。换图标后同时重新导出格式、构建 `dist/`，并检查真实 Windows 窗口。macOS 图标素材不代表 `.command` 具有原生图形窗口。

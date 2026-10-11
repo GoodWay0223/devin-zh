@@ -37,12 +37,16 @@ function buildUserscript() {
   const backup = fs.readFileSync(path.join(__dirname, 'upstream/Devin-Web-Chinese-1.0.7.user.js'));
   if (crypto.createHash('sha256').update(backup).digest('hex') !== UPSTREAM_SHA) throw new Error('Upstream backup changed');
   const { dictionary, rules, reviewedCount, baseEntries, newEntries, updatedTranslations } = loadWebData();
+  const icon = fs.readFileSync(path.join(ROOT, 'assets/devin-zh-32.png')).toString('base64');
+  const icon64 = fs.readFileSync(path.join(ROOT, 'assets/devin-zh-64.png')).toString('base64');
   const header = `// ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
 // @version      ${VERSION}
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
+// @icon         data:image/png;base64,${icon}
+// @icon64       data:image/png;base64,${icon64}
 // @match        https://app.devin.ai/*
 // @match        https://app.beta.devin.ai/*
 // @grant        none
