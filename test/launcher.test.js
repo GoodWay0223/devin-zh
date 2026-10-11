@@ -59,11 +59,11 @@ test('native double-click entry starts from a folder containing spaces and suppo
   const dir = path.join(temporary(t),'extracted tool with spaces'); fs.mkdirSync(dir);
   const source = path.resolve(__dirname,'..');
   for (const name of ['scripts','src']) fs.mkdirSync(path.join(dir,name));
-  for (const name of ['scripts/launcher.js','scripts/windows-installation.js','src/config.js','package.json',process.platform === 'win32' ? 'Start-Windows.cmd' : 'Start-macOS.command'])
+  for (const name of ['scripts/launcher.js','scripts/windows-installation.js','src/config.js','package.json',process.platform === 'win32' ? '汉化工具-Start-Windows.cmd' : '汉化工具-Start-macOS.command'])
     fs.copyFileSync(path.join(source,name),path.join(dir,name));
   let result;
-  if (process.platform === 'win32') result = cp.spawnSync('cmd.exe',['/d','/c','Start-Windows.cmd --check'],{cwd:dir,encoding:'utf8',windowsHide:true});
-  else result = cp.spawnSync('/bin/bash',[path.join(dir,'Start-macOS.command'),'--check'],{cwd:os.tmpdir(),encoding:'utf8'});
+  if (process.platform === 'win32') result = cp.spawnSync('cmd.exe',['/d','/c','汉化工具-Start-Windows.cmd --check'],{cwd:dir,encoding:'utf8',windowsHide:true});
+  else result = cp.spawnSync('/bin/bash',[path.join(dir,'汉化工具-Start-macOS.command'),'--check'],{cwd:os.tmpdir(),encoding:'utf8'});
   assert.equal(result.status,0,result.stderr+'\n'+result.stdout);
   assert.ok(result.stdout.includes(process.platform === 'linux' ? 'CI' : '"platform"'));
   assert.equal(fs.existsSync(path.join(dir,'cache')),false);

@@ -2,7 +2,9 @@
 
 ## Windows：双击启动
 
-下载 `Devin-Desktop-Zh-Windows-1.0.14.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `Start-Windows.vbs`** 打开按钮窗口。旧 `Start-Windows.cmd` 也会打开同一个窗口。
+下载 `Devin-Desktop-Zh-Windows-1.0.15.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `汉化工具-Start-Windows.vbs`（推荐）** 打开按钮窗口。
+
+`汉化工具-Start-Windows.cmd` 是备用入口，会打开同一个窗口；**二者选一个运行，不需要先运行 CMD 再运行 VBS**。VBS 是正式启动入口，并非需要忽略的附属文件。保留两个文件，CMD 会调用同目录的 VBS。源码中的旧英文入口仅用于兼容旧快捷方式。
 
 面向常规 Windows 10/11，需要系统的 PowerShell、Windows Script Host 与 .NET Framework 可用；系统限制脚本执行时入口可能打不开。首次需要 Node.js 和网络，Devin 版本还需通过兼容检查。目前实机验证为 Devin 3.10.48 / VS Code 1.126.0，不能保证每一种 Windows 环境和 Devin 构建都可直接应用。
 
@@ -24,17 +26,17 @@
 
 **无需进入 Devin 编辑器手动安装语言包，也无需填写 `main.i18n.json` 路径。** 工具只读取微软翻译数据，不安装或执行扩展。下载时显示实际字节进度，解析界面时按完成的步骤计数；不知道总量的阶段显示活动进度，不编造预计百分比。详细日志收在【更多操作】中。
 
-熟悉命令行的用户可运行 `Start-Windows.cmd --console`；手动语言包设置仍受支持，见[客户端指南](docs/desktop.md)。工具 ZIP 不附带 Devin 程序或微软语言包，资源只在需要时下载到私有缓存。
+熟悉命令行的用户可运行 `汉化工具-Start-Windows.cmd --console`；手动语言包设置仍受支持，见[客户端指南](docs/desktop.md)。工具 ZIP 不附带 Devin 程序或微软语言包，资源只在需要时下载到私有缓存。
 
 ## macOS：双击预览入口
 
-下载 `Devin-Desktop-Zh-macOS-Preview-1.0.14.zip`，解压后进入 `devin-zh`，**双击 `Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
+下载 `Devin-Desktop-Zh-macOS-Preview-1.0.15.zip`，解压后进入 `devin-zh`，**双击 `汉化工具-Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
 
 **macOS 当前只提供检查和准备报告，不会直接修改 Devin.app，不能完成客户端汉化安装。** 正式应用功能需要实际 Mac 上验证签名、登录和启动。修改签名应用里的资源会破坏签名封印，详见 [Apple 签名规则](https://developer.apple.com/library/archive/technotes/tn2206/_index.html)；工具不会自动重签或调整系统安全设置。
 
 入口寻找 `/Applications/Devin.app` 和 `~/Applications/Devin.app`，也可以手动粘贴应用完整路径。这些是发现候选，不是对 Devin 包结构的保证；实际目标文件缺失或只有 `app.asar` 时停止。菜单 1/2 只在工具文件夹的 `cache/` 中生成备份和报告，菜单 3 只读检查。
 
-若 Terminal 提示没有执行权限，在终端输入 `chmod u+x `（末尾留一个空格），把 `Start-macOS.command` 拖进去后回车，再双击。如果系统阻止运行下载文件，请按 macOS 显示的提示处理；不要关闭 Gatekeeper。发布 ZIP 保留入口的可执行标记。
+若 Terminal 提示没有执行权限，在终端输入 `chmod u+x `（末尾留一个空格），把 `汉化工具-Start-macOS.command` 拖进去后回车，再双击。如果系统阻止运行下载文件，请按 macOS 显示的提示处理；不要关闭 Gatekeeper。发布 ZIP 保留入口的可执行标记。
 
 需要立即使用中文界面时，macOS 浏览器可以使用[网页油猴脚本](web/README.md)。
 

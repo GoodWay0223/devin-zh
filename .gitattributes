@@ -9,6 +9,7 @@
 *.command text eol=lf
 *.ps1 text eol=lf
 *.vbs text eol=lf
+*.cs text diff eol=lf
 .gitattributes text eol=lf
 LICENSE text eol=lf
 web/upstream/*.js -text whitespace=-blank-at-eol,-blank-at-eof

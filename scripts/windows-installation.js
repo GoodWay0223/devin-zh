@@ -25,7 +25,7 @@ try {
       $link = $shell.CreateShortcut($_.FullName)
       if ([IO.Path]::GetFileName($link.TargetPath) -ieq 'Devin.exe') { Add-Hint 'shortcut' $link.TargetPath }
       $targetName = [IO.Path]::GetFileName($link.TargetPath)
-      if ($targetName -in @('Start-Windows.cmd','Start-Windows.vbs') -or ($targetName -ieq 'wscript.exe' -and $link.Arguments -match 'Start-Windows\.vbs(?:"|\s|$)')) { Add-Hint 'tool' $link.WorkingDirectory }
+      if ($targetName -in @('Start-Windows.cmd','Start-Windows.vbs','汉化工具-Start-Windows.cmd','汉化工具-Start-Windows.vbs') -or ($targetName -ieq 'wscript.exe' -and $link.Arguments -match '(?:汉化工具-)?Start-Windows\.vbs(?:"|\s|$)')) { Add-Hint 'tool' $link.WorkingDirectory }
     }
   }
 } catch {}

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -44,15 +45,42 @@ public class DevinZhWindow : Form {
         button.FlatAppearance.BorderColor=Color.FromArgb(214,222,235); button.BackColor=Color.White;
         Controls.Add(button); return button;
     }
+    static Bitmap ProjectBadge(int size) {
+        var bitmap=new Bitmap(size,size);
+        using(var graphics=Graphics.FromImage(bitmap))
+        using(var shape=new GraphicsPath())
+        using(var blue=new SolidBrush(Color.FromArgb(37,99,235)))
+        using(var white=new SolidBrush(Color.White))
+        using(var font=new Font("Microsoft YaHei UI",size*0.55F,FontStyle.Bold,GraphicsUnit.Pixel))
+        using(var alignment=new StringFormat {Alignment=StringAlignment.Center,LineAlignment=StringAlignment.Center}) {
+            graphics.SmoothingMode=SmoothingMode.AntiAlias;
+            float radius=size*0.23F, edge=size-1;
+            shape.AddArc(0,0,radius,radius,180,90);shape.AddArc(edge-radius,0,radius,radius,270,90);
+            shape.AddArc(edge-radius,edge-radius,radius,radius,0,90);shape.AddArc(0,edge-radius,radius,radius,90,90);shape.CloseFigure();
+            graphics.FillPath(blue,shape);
+            graphics.DrawString("汉",font,white,new RectangleF(0,0,size,size),alignment);
+        }
+        return bitmap;
+    }
+    static Icon ProjectIcon() {
+        using(var bitmap=ProjectBadge(128)) {
+            var handle=bitmap.GetHicon();
+            try { return (Icon)Icon.FromHandle(handle).Clone(); } finally {DestroyIcon(handle);}
+        }
+    }
     public DevinZhWindow(string directory) {
         SuspendLayout();
         AutoScaleDimensions=new SizeF(96F,96F); AutoScaleMode=AutoScaleMode.Dpi;
         projectDir=Path.GetFullPath(directory);
-        string version=TextOf(json.Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(projectDir,"package.json"))),"version");
+        var metadata=json.Deserialize<Dictionary<string,object>>(File.ReadAllText(Path.Combine(projectDir,"package.json")));
+        string version=TextOf(metadata,"version"), author=TextOf(metadata,"author"), repository=TextOf(metadata,"homepage");
         Text="Devin 汉化工具"; ClientSize=new Size(680,545); StartPosition=FormStartPosition.CenterScreen;
         Font=new Font("Microsoft YaHei UI",10); BackColor=Color.FromArgb(247,249,252);
         FormBorderStyle=FormBorderStyle.FixedDialog; MaximizeBox=false;
-        LabelAt("Devin 简体中文汉化",28,22,500,42,21);
+        Icon=ProjectIcon();
+        var badge=new PictureBox {Location=new Point(30,26),Size=new Size(36,36),Image=ProjectBadge(128),SizeMode=PictureBoxSizeMode.Zoom};
+        Controls.Add(badge);
+        LabelAt("Devin 简体中文汉化",78,22,475,42,21);
         LabelAt("v"+version,572,31,85,25);
         LabelAt("聊天界面和编辑器菜单，自动准备，一键应用。",30,71,620,26);
         installTitle=LabelAt("正在查找 Devin…",30,114,620,27,11,true);
@@ -72,7 +100,21 @@ public class DevinZhWindow : Form {
         start.BackColor=Color.FromArgb(37,99,235); start.ForeColor=Color.White; start.FlatAppearance.BorderSize=0;
         start.Font=new Font(Font.FontFamily,11,FontStyle.Bold);
         restore=ButtonAt("恢复原版",269,445,158,44); more=ButtonAt("更多操作",445,445,207,44);
-        var footer=LabelAt("语言资源在本机使用；恢复备份会自动保留。",30,513,620,23,9); footer.ForeColor=Color.FromArgb(122,132,149);
+        var footer=LabelAt("作者："+author,30,513,205,23,9); footer.ForeColor=Color.FromArgb(100,112,132);
+        Action openRepository=()=>{
+            try {Process.Start(new ProcessStartInfo {FileName=repository,UseShellExecute=true});}
+            catch(Exception error) {MessageBox.Show(this,"无法打开浏览器，可复制项目地址访问：\n"+repository+"\n\n"+error.Message,"项目 GitHub",MessageBoxButtons.OK,MessageBoxIcon.Information);}
+        };
+        var github=new PictureBox {Location=new Point(248,514),Size=new Size(18,18),SizeMode=PictureBoxSizeMode.Zoom,Cursor=Cursors.Hand,AccessibleName="打开项目 GitHub"};
+        using(var stream=File.OpenRead(Path.Combine(projectDir,"assets","github-mark-black.png")))
+        using(var image=Image.FromStream(stream)) github.Image=new Bitmap(image);
+        github.Click+=(s,e)=>openRepository(); Controls.Add(github);
+        var projectLink=new LinkLabel {Text="GitHub · GoodWay0223/devin-zh",Location=new Point(277,511),Size=new Size(376,25),
+            Font=new Font(Font.FontFamily,9),LinkColor=Color.FromArgb(37,99,235),ActiveLinkColor=Color.FromArgb(29,78,216),
+            LinkBehavior=LinkBehavior.HoverUnderline,AccessibleDescription=repository};
+        projectLink.LinkClicked+=(s,e)=>openRepository();Controls.Add(projectLink);
+        var tooltip=new ToolTip();tooltip.SetToolTip(projectLink,repository);tooltip.SetToolTip(github,repository);
+        FormClosed+=(s,e)=>{badge.Image.Dispose();github.Image.Dispose();tooltip.Dispose();};
         AcceptButton=start;
         start.Click+=(s,e)=>{
             if (needNode) {Process.Start("https://nodejs.org/zh-cn/download");return;}
@@ -195,6 +237,7 @@ public class DevinZhWindow : Form {
         }
     }
     [DllImport("user32.dll")] static extern bool SetProcessDPIAware();
+    [DllImport("user32.dll")] static extern bool DestroyIcon(IntPtr icon);
     [STAThread] public static void Main(string[] args){
         SetProcessDPIAware();Application.EnableVisualStyles();Application.SetCompatibleTextRenderingDefault(false);
         try {Application.Run(new DevinZhWindow(args.Length>0?args[0]:Environment.GetEnvironmentVariable("DEVIN_ZH_GUI_PROJECT")));}

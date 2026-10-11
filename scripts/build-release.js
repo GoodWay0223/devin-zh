@@ -17,12 +17,12 @@ function buildRelease(output=path.join(ROOT,'release-assets')) {
   fs.mkdirSync(directory,{recursive:true});
   const scriptName = `Devin-Web-Zh-${built.version}.user.js`;
   const archives = [
-    {name:`Devin-Desktop-Zh-Windows-${pkg.version}.zip`,exclude:['Start-macOS.command']},
-    {name:`Devin-Desktop-Zh-macOS-Preview-${pkg.version}.zip`,exclude:['Start-Windows.cmd','Start-Windows.vbs']}
+    {name:`Devin-Desktop-Zh-Windows-${pkg.version}.zip`,exclude:['Start-Windows.cmd','Start-Windows.vbs','Start-macOS.command','汉化工具-Start-macOS.command']},
+    {name:`Devin-Desktop-Zh-macOS-Preview-${pkg.version}.zip`,exclude:['Start-Windows.cmd','Start-Windows.vbs','Start-macOS.command','汉化工具-Start-Windows.cmd','汉化工具-Start-Windows.vbs']}
   ];
   fs.writeFileSync(path.join(directory,scriptName),built.source);
   // Archive only reviewed, version-controlled source. No cache, app files or local configuration.
-  const tracked = git(['ls-tree','-r','--name-only','HEAD']).trim().split('\n');
+  const tracked = git(['ls-tree','-r','-z','--name-only','HEAD']).split('\0').filter(Boolean);
   for (const archive of archives)
     git(['archive','--format=zip','--prefix=devin-zh/','--output='+path.join(directory,archive.name),'HEAD','--',...tracked.filter(file=>!archive.exclude.includes(file))]);
   const {source,...report} = built;
@@ -36,7 +36,7 @@ function buildRelease(output=path.join(ROOT,'release-assets')) {
   const changelog = fs.readFileSync(path.join(ROOT,'CHANGELOG.md'),'utf8');
   const section = changelog.split('\n## ').find(part=>part.startsWith(pkg.version+' — ') || part.startsWith(pkg.version+' / '));
   if (!section) throw new Error('Add a CHANGELOG section for the current tool version before publishing.');
-  const notes = `## 下载与安装\n\n- 网页脚本：\`${scriptName}\`，在 Tampermonkey 替换后刷新网页。\n- **Windows**：\`${archives[0].name}\`，解压进入 \`devin-zh\`，**双击 \`Start-Windows.vbs\`** 打开按钮窗口；旧 \`Start-Windows.cmd\` 也会打开此窗口。默认完整汉化自动查找或下载匹配的微软中文资源，显示步骤/下载进度。准备后退出 Devin，再点【应用汉化】。\n- **macOS 预览**：\`${archives[1].name}\`，双击 \`Start-macOS.command\`。中文资源自动准备，显示步骤；**暂不能应用到官方 .app**，尚无实际 Mac 签名/启动验收。\n- 需要 Node.js 22.13+（推荐 24 LTS）；Windows 使用系统自带 .NET Framework 生成窗口，不安装额外 GUI 框架。工具包不附带 Devin 或微软语言包，仅在需要时从微软获取翻译数据。\n- 完整说明：包内 \`START_HERE.md\`。升级工具时保留旧 \`cache/\` 和本机配置。\n- 校验值：\`SHA256SUMS\`；网页构建信息：\`build-report.json\`。\n\n## 本次更新\n\n${section.slice(section.indexOf('\n')+1).trim()}\n`;
+  const notes = `## 下载与安装\n\n- 网页脚本：\`${scriptName}\`，在 Tampermonkey 替换后刷新网页。\n- **Windows**：\`${archives[0].name}\`，解压进入 \`devin-zh\`，**双击 \`汉化工具-Start-Windows.vbs\`（推荐）** 打开按钮窗口；\`汉化工具-Start-Windows.cmd\` 为备用入口，二者选一个即可，不用先后运行。默认完整汉化自动查找或下载匹配的微软中文资源，显示步骤/下载进度。准备后退出 Devin，再点【应用汉化】。\n- **macOS 预览**：\`${archives[1].name}\`，双击 \`汉化工具-Start-macOS.command\`。中文资源自动准备，显示步骤；**暂不能应用到官方 .app**，尚无实际 Mac 签名/启动验收。\n- 窗口标注作者 GoodWay0223、可点击的 GitHub 项目链接、GitHub 链接图标及工具自己的“汉”字图标。\n- 需要 Node.js 22.13+（推荐 24 LTS）；Windows 使用系统自带 .NET Framework 生成窗口，不安装额外 GUI 框架。工具包不附带 Devin 或微软语言包，仅在需要时从微软获取翻译数据。\n- 完整说明：包内 \`START_HERE.md\`。升级工具时保留旧 \`cache/\` 和本机配置。\n- 校验值：\`SHA256SUMS\`；网页构建信息：\`build-report.json\`。\n\n## 本次更新\n\n${section.slice(section.indexOf('\n')+1).trim()}\n`;
   fs.writeFileSync(path.join(directory,'RELEASE_NOTES.md'),notes);
   console.log(JSON.stringify({directory,toolVersion:pkg.version,webVersion:built.version,assets:[...assets,'SHA256SUMS']},null,2));
   return {directory,assets};
