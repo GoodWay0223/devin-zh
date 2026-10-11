@@ -1,13 +1,14 @@
 {
   "name": "devin-desktop-zh",
-  "version": "0.3.8",
-  "description": "Devin 网页端油猴与 Windows Desktop Agent 简体中文汉化",
+  "version": "0.3.9",
+  "description": "Devin 网页油猴、Windows Desktop 汉化与 macOS 检查预览工具",
   "private": true,
   "license": "MIT",
   "bin": {
     "devin-zh": "src/cli.js"
   },
   "scripts": {
+    "start": "node scripts/launcher.js",
     "apply": "node src/cli.js apply",
     "prepare": "node src/cli.js prepare",
     "restore": "node src/cli.js restore",

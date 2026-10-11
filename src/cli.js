@@ -14,6 +14,7 @@ function checkInstallation(baseline) {
   if (unknown.length) throw new Error('安装存在未知修改或缺失，未生成或应用补丁：' + unknown.map(x => x.relative).join('；'));
 }
 function prepare() {
+  const machineOutput = process.argv.includes('--json');
   const scope = option('scope') || 'all';
   if (!['all', 'web', 'nls'].includes(scope)) throw new Error('--scope 必须为 all/web/nls');
   const baseline = I.loadBaseline({ root: C.ROOT, create: true });
@@ -23,12 +24,12 @@ function prepare() {
   if (scope !== 'nls') for (const relative of I.FILES.slice(0, 2)) {
     const result = patchSource(baseline.originals.get(relative), D, undefined, { requireCompatibility: true });
     changes.push({ relative, ...result });
-    console.log(`${relative}: i18n ${result.stats.i18n}，React 文本 ${result.stats.ui}，动态导航/菜单 ${result.stats.display}，拒绝 ${result.stats.rejected}`);
+    if (!machineOutput) console.log(`${relative}: i18n ${result.stats.i18n}，React 文本 ${result.stats.ui}，动态导航/菜单 ${result.stats.display}，拒绝 ${result.stats.rejected}`);
   }
   if (scope !== 'web') {
     const result = require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
     changes.push(...result.changes);
-    console.log(`NLS: ${result.stats.translated}/${result.stats.total}，拒绝 ${result.stats.rejected}`);
+    if (!machineOutput) console.log(`NLS: ${result.stats.translated}/${result.stats.total}，拒绝 ${result.stats.rejected}`);
   }
   const digest = I.sha(JSON.stringify(changes.map(x => [x.relative, I.sha(x.source)])));
   const directory = path.resolve(__dirname, '..', 'cache', 'plans', baseline.identity, scope + '-' + digest);
@@ -41,7 +42,7 @@ function prepare() {
   }
   const reportFile = path.join(directory, 'report.json');
   fs.writeFileSync(reportFile, JSON.stringify(report, null, 2) + '\n');
-  console.log('已准备，未修改安装文件。报告: ' + reportFile);
+  console.log(machineOutput ? JSON.stringify({reportFile,scope,files:report.files},null,2) : '已准备，未修改安装文件。报告: ' + reportFile);
   return { baseline, changes, reportFile };
 }
 function apply() {
@@ -138,7 +139,7 @@ function doctor() {
     console.log(relative + ': ' + (compatibility.compatible ? 'Web 结构兼容' : compatibility.reasons.join('；')));
     if (!compatibility.compatible) problems.push(compatibility);
   }
-  try {
+  if (option('scope') !== 'web') try {
     require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
     console.log('NLS 语言包及消息结构兼容');
   } catch (error) { console.error('NLS 尚未适配：' + error.message); problems.push(error); }

@@ -83,8 +83,8 @@ function loadBaseline({ root, cacheDir, create = false }) {
   }
   return { ...loc, manifest, originals, current, state, stateFile };
 }
-function assertStopped(root) {
-  if (process.platform !== 'win32') return;
+function assertStopped(root, {platform = process.platform} = {}) {
+  if (platform !== 'win32') throw new Error('当前仅 Windows 支持写入安装。macOS 入口为检查/准备预览版，不直接修改官方 .app；签名及实际启动尚未验证。');
   const exe = path.resolve(root, '..', '..', 'Devin.exe');
   const script = "$ErrorActionPreference = 'Stop'; @(Get-CimInstance Win32_Process -Filter \"Name = 'Devin.exe'\" | Where-Object { $_.ExecutablePath -eq $env:DEVIN_ZH_CHECK_EXE }).Count";
   const output = cp.execFileSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {

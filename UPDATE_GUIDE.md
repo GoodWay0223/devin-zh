@@ -2,6 +2,8 @@
 
 项目词典可以长期复用；安装补丁必须从更新后的官方原文件重新生成。当前实机验证为 Devin 3.10.48 / VS Code 1.126.0，其他版本需要先检查兼容性。
 
+**Windows 双击方式**：保留工具根目录的 `cache/` 和 `.devin-zh.local.json`，确认官方新版正常启动后退出 Devin，双击 `Start-Windows.cmd`，再选 1 或 2 即可重新生成并应用。选择 4 恢复当前构建原版。升级工具时把旧缓存/本机配置复制到新工具根目录，详见 [入口说明](START_HERE.md)。macOS 当前仅检查和准备预览，不执行以下写入操作。
+
 1. 正常完成 Devin 官方更新，先打开一次确认原版能启动。不要把旧版脚本或旧 `.bak-zh` 复制到新版。
 2. 在项目目录运行 `node src/cli.js doctor`。这个命令只读，核对安装完整性、React/语言资源结构及 NLS 语言包。
 3. 检查通过后运行 `node src/cli.js prepare`，记录命令打印的新 `report.json` 路径。若只缺少或不匹配可选 NLS 语言包，使用 `node src/cli.js prepare --scope=web` 先生成 Agent 界面补丁。检查报告的翻译数量、兼容信息及被拒绝译文；然后运行 `npm test`。

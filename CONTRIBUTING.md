@@ -32,7 +32,7 @@ node web/serve-fixture.js
 1. 更新 `package.json` / `package-lock.json` 的工具版本；网页改变时更新 `web/build.js` 的脚本版本。记录 `CHANGELOG.md` 和验证边界。
 2. 执行检查、生成 `dist/`，检查 Git 暂存区和历史，提交源码。不要提交 `.devin-zh.local.json`、`.env`、`cache/`、安装文件、VSIX、日志或账号资料。
 3. 在干净工作区运行 `npm run build:release`。工具包通过 `git archive HEAD` 生成，只包含版本控制的项目源码；`release-assets/` 不入库。
-4. 推送源码，等待 CI 通过，创建与工具版本一致的 `vX.Y.Z` 标签并推送。Release 工作流检查并发布网页 `.user.js`、客户端源码工具 ZIP、构建报告和 `SHA256SUMS`。
+4. 推送源码，等待 Windows / macOS / Linux 的 Node 22/24 检查通过，创建与工具版本一致的 `vX.Y.Z` 标签并推送。Release 工作流发布网页 `.user.js`、Windows 双击 ZIP、macOS 检查预览 ZIP、构建报告和 `SHA256SUMS`。macOS 入口须保留 Git 可执行位，Windows `.cmd` 须在仓库及 ZIP 中保留 CRLF。
 5. 核对实际 GitHub Release 的公开状态、下载内容及校验值。不要把工作流已启动当作发布完成。
 
 发布工具包不重新分发 Devin 官方程序或微软语言包。升级工具时保留原有本机安装缓存，重新生成准备报告。

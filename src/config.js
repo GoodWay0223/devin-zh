@@ -3,9 +3,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const os = require('node:os');
 
-// Environment wins over an ignored machine-local setting. Published copies
-// use the usual Windows per-user install location; custom installs set DEVIN_APP.
-function appRoot({env = process.env, projectDir = path.resolve(__dirname, '..')} = {}) {
+// Environment wins over an ignored machine-local setting.
+function appRoot({env = process.env, projectDir = path.resolve(__dirname, '..'), platform = process.platform} = {}) {
   if (env.DEVIN_APP) return path.resolve(env.DEVIN_APP);
   const file = path.join(projectDir, '.devin-zh.local.json');
   if (fs.existsSync(file)) {
@@ -15,6 +14,7 @@ function appRoot({env = process.env, projectDir = path.resolve(__dirname, '..')}
     }
     return path.resolve(config.appRoot);
   }
+  if (platform === 'darwin') return '/Applications/Devin.app/Contents/Resources/app';
   const local = env.LOCALAPPDATA || path.join(os.homedir(), 'AppData', 'Local');
   return path.join(local, 'Programs', 'Devin', 'resources', 'app');
 }

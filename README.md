@@ -4,23 +4,24 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![下载](https://img.shields.io/github/v/release/GoodWay0223/devin-zh)](https://github.com/GoodWay0223/devin-zh/releases/latest)
 
-让 Devin 网页端和 Windows Desktop 的本地 Agent 界面使用简体中文。两个入口共用人工词典，分别采用网页显示层翻译和客户端语法树补丁；提供源码、可安装的油猴脚本，以及带检查和回滚功能的客户端汉化工具。
+让 Devin 网页端和 Windows Desktop 的本地 Agent 界面使用简体中文。提供油猴脚本、Windows 双击汉化工具与 macOS 检查预览入口；网页和客户端共用人工词典。
 
 这是社区维护项目，与 Devin / Cognition 官方无隶属关系。
 
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
-| **网页油猴脚本** | **1.0.12** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **0.3.8** | 指定官方安装目录，检查、准备补丁，退出客户端后应用 |
+| **网页油猴脚本** | **1.0.13** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **0.3.9** | 解压后双击 `Start-Windows.cmd`，按菜单汉化或恢复 |
+| **macOS 客户端预览** | **0.3.9** | 双击 `Start-macOS.command`，仅检查/准备，暂不写入 `.app` |
 
-**[下载最新发布版](https://github.com/GoodWay0223/devin-zh/releases/latest)** · [网页使用与维护](web/README.md) · [客户端详细安装](docs/desktop.md) · [Devin 更新后重新汉化](UPDATE_GUIDE.md)
+**[下载最新发布版](https://github.com/GoodWay0223/devin-zh/releases/latest)** · **[解压后运行哪个文件](START_HERE.md)** · [网页使用与维护](web/README.md) · [客户端详细安装](docs/desktop.md) · [更新后重新汉化](UPDATE_GUIDE.md)
 
 ## 网页端：安装油猴脚本
 
 适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
 
 1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.12.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.13.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
 3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
 
 覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,582 条精确词条、104 条规则**；相较原版 1.0.7 新增 388 条词条并修订 14 条译文。
@@ -33,9 +34,15 @@
 
 **更新采用手动安装。** 保留原版的脚本名称及 namespace 以方便替换，关闭上游自动更新，避免覆盖本项目的修改。更新时从本仓库或 Releases 取得新脚本，替换、保存、刷新；停用脚本即可撤销网页汉化。
 
+**1.0.13 针对动态侧栏减少重复处理**：属性更新只处理当前元素，移除的虚拟列表节点及时清队列，祖先和子节点的扫描合并；固定 Recent 分组标题可翻译，会话标题仍保持原文。模拟 500 个按钮、20 轮属性变化不再新增子树遍历。当前真实 Chrome 中 Recent 在两种排序下都为空，并出现登录令牌错误；未复现“切换排序立即恢复”，因此此优化不能视为已经解决会话列表的数据加载问题。已安装油猴版本尚无法核对，新脚本需手动替换后验收。
+
 ## 客户端：汉化本地 Agent 界面
 
-需要 **Windows、Node.js 22.13+（推荐 24）、正常工作的官方 Devin Desktop**。下载发布页的 `devin-desktop-zh-0.3.8.zip` 并解压，进入其中的 `devin-zh` 文件夹；也可以克隆源码：
+**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-0.3.9.zip`，解压进入 `devin-zh`，双击 **`Start-Windows.cmd`**。首次需安装 **Node.js 22.13+（推荐 24 LTS）**；入口会自动安装锁定依赖，查找安装目录。未找到时粘贴 `Devin.exe` 或安装文件夹路径，之后按菜单 1 汉化、菜单 4 恢复。不需要手动输入以下命令。
+
+**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-0.3.9.zip`，双击 **`Start-macOS.command`**。这是仅检查/准备报告的预览版，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
+
+以下命令适用于想自行操作的 Windows 用户，需要正常工作的官方 Devin Desktop：
 
 ```powershell
 git clone https://github.com/GoodWay0223/devin-zh.git
@@ -92,15 +99,15 @@ node src/cli.js status
 
 ## 验证记录
 
-截至 2026-10-10：
+截至 2026-10-11：
 
 | 检查 | 结果与边界 |
 | --- | --- |
-| 项目回归测试 | 88 项，覆盖翻译/安装契约、用户内容保护、混合侧栏、性能，以及原生通知偏好、选择按钮元数据、备份、并发修改保护和撤销 |
-| 网页 DOM 回归 | 独立浏览器验证页 72 项通过，新增混合布局内 UI 恢复翻译/用户名保护及通用 tree/session-id 标记回归；不是新版安装后的全站验收 |
-| 登录态网页检查 | 用户确认 1.0.10 正常加载、稍慢，1.0.11 汉化效果退步；1.0.12 完成针对回归的独立浏览器验证，尚未在用户 Chrome 安装后验收 |
+| 项目回归测试 | 98 项，覆盖翻译/安装契约、用户内容保护、混合侧栏、性能、原生通知与新双击入口/路径/设置备份/平台写入边界 |
+| 网页 DOM 回归 | 当前源码在真实 Chrome 的独立验证页 72 项通过；20,000 次正文/会话更新不增加遍历或规则执行，不是 Devin 列表加载验收 |
+| 登录态网页检查 | 本次巡查 Recent 在两种排序下均为空，控制台有登录令牌错误；1.0.13 尚未替换用户油猴后验收，不能声称 Recent 数据加载已恢复 |
 | 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
-| 本次客户端工具 | 0.3.8 新增原生选择按钮配置；本机已恢复初次提示并补说明链接，校验代码/表及汉化文件不变。隔离验证原生方法显示两个动作并按当前 commit 存储选择，尚未实机启动验收 |
+| 本次客户端工具 | 0.3.9 增加双击菜单、目录发现与设置备份；本机完成只读检查和报告准备，未重新应用已正常使用的汉化文件。macOS 当前仅检查预览，尚无 Devin.app 启动验收 |
 
 检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
 
@@ -125,7 +132,7 @@ node web/serve-fixture.js # 打开打印的本地地址执行真实 DOM 回归
 | `src/install.js`、`compatibility.js` | 原版验证、事务、回滚与版本兼容 |
 | `dist/Devin-Web-Zh.user.js` | 可直接安装的发布副本，由源码生成 |
 
-既有机翻词典仅作为离线草稿，常规构建/应用不调用在线机翻。贡献译文或适配新版本请看 [CONTRIBUTING.md](CONTRIBUTING.md)。发布脚本会检查不应上传的文件、凭据和生成结果，CI 比较生成脚本，标签发布自动生成两种下载包及 `SHA256SUMS`。
+既有机翻词典仅作为离线草稿，常规构建/应用不调用在线机翻。贡献译文或适配新版本请看 [CONTRIBUTING.md](CONTRIBUTING.md)。发布脚本检查公开文件和生成结果，CI 比较生成脚本并验证三个系统的入口；标签发布生成网页脚本、Windows ZIP、macOS 预览 ZIP 及 `SHA256SUMS`。
 
 ## 来源与许可证
 

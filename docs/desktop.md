@@ -4,6 +4,8 @@
 
 浏览器中的 Devin 网页请使用[油猴脚本指南](../web/README.md)。客户端中加载的云端网页与本地 Agent 界面是不同来源，目前不会通过修改客户端来给跨源网页注入脚本。
 
+**不想使用命令行**：Windows 解压后双击 `Start-Windows.cmd`，使用菜单 1 汉化、菜单 4 恢复。macOS 双击 `Start-macOS.command`，当前仅检查/准备预览，不能直接应用。两个系统的首次准备和入口说明见 [START_HERE.md](../START_HERE.md)。以下是 Windows 手动操作的详细流程。
+
 ## 当前验证范围
 
 | 项目 | 已确认的范围 |
@@ -11,7 +13,7 @@
 | 操作系统 | Windows |
 | 客户端构建 | Devin Desktop 3.10.48 / VS Code 1.126.0 |
 | 已应用并启动验收的补丁 | 工具 0.3.0，已核对客户端启动及本地界面 |
-| 本次发布的工具 | 0.3.8，支持恢复首次提示并让用户选择是否不再提醒，汉化补丁逻辑未变；用户确认桌面汉化正常 |
+| 本次发布的工具 | 0.3.9，增加 Windows 双击菜单与 macOS 检查预览；汉化补丁逻辑未变，用户确认此前桌面汉化正常 |
 | 其他客户端版本 | 需要重新执行兼容检查及启动验收，没有通用兼容承诺 |
 
 词典可以复用，生成的安装补丁必须对应当前客户端构建。更新 Devin 后不能直接复制旧补丁或旧报告。
@@ -20,7 +22,7 @@
 
 ## 1. 获取工具并指定安装目录
 
-需要 Node.js 22.13 或更新版本（推荐 24），以及能够正常启动的官方 Devin Desktop。可以下载 [Release](https://github.com/GoodWay0223/devin-zh/releases/latest) 中的客户端工具 ZIP 并解压到长期保留的目录，进入其中的 `devin-zh` 文件夹，执行 `npm ci --ignore-scripts`。也可以使用 Git 克隆，打开 PowerShell：
+需要 Node.js 22.13 或更新版本（推荐 24），以及能够正常启动的官方 Devin Desktop。可以下载 [Release](https://github.com/GoodWay0223/devin-zh/releases/latest) 中的 Windows ZIP 并解压到长期保留的目录，进入其中的 `devin-zh` 文件夹；双击入口会自动安装依赖。选择手动操作时执行 `npm ci --ignore-scripts`。也可以使用 Git 克隆，打开 PowerShell：
 
 ```powershell
 git clone https://github.com/GoodWay0223/devin-zh.git

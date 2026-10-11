@@ -25,5 +25,5 @@ test('ignored local setting preserves a custom installation; relative paths fail
 test('fresh copies use Windows per-user install location without the maintainer directory',t=>{
   const dir = machine(t);
   const local = path.join(dir,'Local');
-  assert.equal(appRoot({projectDir:dir,env:{LOCALAPPDATA:local}}),path.join(local,'Programs','Devin','resources','app'));
+  assert.equal(appRoot({projectDir:dir,env:{LOCALAPPDATA:local},platform:'win32'}),path.join(local,'Programs','Devin','resources','app'));
 });

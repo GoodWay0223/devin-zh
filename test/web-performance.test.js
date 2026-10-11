@@ -304,3 +304,78 @@ test('dispose cancels the fallback timer when requestAnimationFrame is unavailab
   assert.equal(translator.getStats().pending, 0);
   assert.equal(translator.getStats().active, false);
 });
+
+test('attribute updates on a large UI container process only its attributes', () => {
+  const page = browser(), container = page.element('section', {title: 'Open settings'});
+  const buttons = Array.from({length: 500}, () => {
+    const button = page.element('button'); button.append(page.text('Open settings')); container.append(button); return button;
+  });
+  page.body.append(container);
+  const translator = mountDevinZh(page.win, {'Open settings': '打开设置'}, []);
+  page.drain();
+  const initial = translator.getStats(), initialWalks = page.walks.length;
+  for (let round = 0; round < 20; round++) {
+    container.setAttribute('title', 'Open settings');
+    page.observers[0].emit(Array.from({length: 100}, () => ({type: 'attributes', target: container, attributeName: 'title'})));
+    assert.equal(translator.getStats().pending, 1, 'coalesce an attribute burst into one shallow task');
+    page.drain();
+  }
+  assert.equal(page.walks.length, initialWalks, 'changing a title must never retraverse hundreds of child nodes');
+  assert.equal(translator.getStats().visitedNodes - initial.visitedNodes, 20);
+  assert.ok(buttons.every(button => button.textContent === '打开设置'));
+  translator.dispose();
+});
+
+test('a later queued ancestor replaces earlier descendant traversal tasks', () => {
+  const page = browser(), container = page.element('section'), button = page.element('button'), text = page.text('Open settings');
+  button.append(text); container.append(button); page.body.append(container);
+  const translator = mountDevinZh(page.win, {'Open settings': '打开设置'}, []);
+  page.drain();
+  const walks = page.walks.length;
+  text.nodeValue = 'Open settings';
+  page.observers[0].emit([
+    {type: 'characterData', target: text},
+    {type: 'childList', target: container, addedNodes: [button]},
+    {type: 'childList', target: page.body, addedNodes: [container]},
+  ]);
+  assert.equal(translator.getStats().pending, 1);
+  page.drain();
+  assert.equal(page.walks.length - walks, 1);
+  assert.equal(text.nodeValue, '打开设置');
+  translator.dispose();
+});
+
+test('virtualized insert/remove bursts release disconnected work before animation frames', () => {
+  const page = browser(), container = page.element('section'); page.body.append(container);
+  const translator = mountDevinZh(page.win, {'Open settings': '打开设置'}, []);
+  page.drain();
+  for (let round = 0; round < 30; round++) {
+    const button = page.element('button', {title: 'Open settings'}); button.append(page.text('Open settings')); container.append(button);
+    page.observers[0].emit([
+      {type: 'childList', target: container, addedNodes: [button]},
+      {type: 'attributes', target: button, attributeName: 'title'},
+    ]);
+    assert.ok(translator.getStats().pending > 0);
+    container.childNodes = []; button.parentElement = null;
+    page.observers[0].emit([{type: 'childList', target: container, addedNodes: [], removedNodes: [button]}]);
+    assert.equal(translator.getStats().pending, 0, 'detached list rows must not accumulate in either work queue');
+  }
+  page.drain();
+  assert.equal(translator.getStats().pending, 0);
+  translator.dispose();
+});
+
+test('the real expandable Recent group stays translatable while session titles are preserved', () => {
+  const page = browser(), sidebar = page.element('div', {'data-slot': 'sidebar-content', role: 'tree'});
+  const row = page.element('div', {'data-slot': 'sidebar-label-row'}), button = page.element('button', {'aria-expanded': 'true'});
+  const group = page.element('span', {'data-slot': 'sidebar-group-label'}), groupText = page.text('Recent'); group.append(groupText); button.append(group); row.append(button);
+  const session = page.element('div', {'data-slot': 'sidebar-menu-item'}), link = page.element('a', {href: '/sessions/session-123', 'aria-label': 'Open settings'});
+  const title = page.element('div'), titleText = page.text('Open settings'); title.append(titleText); session.append(link, title);
+  sidebar.append(row, session); page.body.append(sidebar);
+  const translator = mountDevinZh(page.win, {Recent: '最近', 'Open settings': '打开设置'}, []);
+  page.drain();
+  assert.equal(groupText.nodeValue, '最近');
+  assert.equal(titleText.nodeValue, 'Open settings');
+  assert.equal(link.getAttribute('aria-label'), 'Open settings');
+  translator.dispose();
+});

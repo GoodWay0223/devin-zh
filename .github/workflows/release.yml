@@ -25,7 +25,7 @@ jobs:
       - run: npm test
       - run: npm run release:check
       - run: npm run build:release
-      - name: Publish both artifacts
+      - name: Publish web and platform launchers
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}

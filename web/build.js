@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const crypto = require('node:crypto');
 const { mountDevinZh } = require('./runtime');
 const ROOT = path.resolve(__dirname, '..');
-const VERSION = '1.0.12';
+const VERSION = '1.0.13';
 const UPSTREAM_SHA = '6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2';
 function loadWebData() {
   const source = fs.readFileSync(path.join(ROOT, 'data/web-dictionary.js'), 'utf8');

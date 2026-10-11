@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
-// @version      1.0.12
+// @version      1.0.13
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @match        https://app.devin.ai/*
@@ -115,6 +115,8 @@ function mountDevinZh(win, dictionary, rules) {
     const button = element.closest('button, [role="button"]');
     if (button) {
       const label = (button.getAttribute('aria-label') || button.textContent || '').trim();
+      const groupLabel = button.querySelector('[data-slot="sidebar-group-label"]');
+      if (groupLabel && fixedGroupLabels.has((groupLabel.textContent || '').trim())) return false;
       return !fixedActionLabels.has(label);
     }
     if (!element.children.length) {
@@ -224,7 +226,7 @@ function mountDevinZh(win, dictionary, rules) {
     }
   }
 
-  const pending = new Set();
+  const pending = new Set(), pendingAttributes = new Set();
   let active = null;
   let scheduled = null;
   let animationScheduled = false;
@@ -237,6 +239,9 @@ function mountDevinZh(win, dictionary, rules) {
   function enqueue(node) {
     if (!node || !node.isConnected || disposed || !eligible(node)) return;
     for (let parent = node.parentElement; parent; parent = parent.parentElement) if (pending.has(parent)) return;
+    // An ancestor can arrive after its children in one MutationObserver batch.
+    // Keep only one traversal for that subtree regardless of arrival order.
+    if (node.nodeType === 1) for (const child of pending) if (node.contains(child)) pending.delete(child);
     if (pending.size >= 200 && node.parentElement && node.parentElement !== doc.body && node.parentElement !== doc.documentElement && eligible(node.parentElement)) {
       // Merge a burst in one UI subtree. Never escalate it to the whole page.
       const parent = node.parentElement;
@@ -244,6 +249,12 @@ function mountDevinZh(win, dictionary, rules) {
       pending.add(parent);
     } else pending.add(node);
     stats.highWater = Math.max(stats.highWater, pending.size);
+    scheduleFrame();
+  }
+  function enqueueAttributes(element) {
+    if (!element?.isConnected || disposed || !eligible(element)) return;
+    pendingAttributes.add(element);
+    stats.highWater = Math.max(stats.highWater, pending.size + pendingAttributes.size);
     scheduleFrame();
   }
   function processNode(node) {
@@ -259,6 +270,13 @@ function mountDevinZh(win, dictionary, rules) {
     stats.flushes++;
     let count = 0;
     while (count < 128 && win.performance.now() - start < 3) {
+      if (pendingAttributes.size && (count % 2 === 1 || (!active && !pending.size))) {
+        const element = pendingAttributes.values().next().value;
+        pendingAttributes.delete(element);
+        if (element.isConnected) { stats.visitedNodes++; translateAttributes(element); }
+        count++;
+        continue;
+      }
       if (!active) {
         const root = pending.values().next().value;
         if (!root) break;
@@ -281,10 +299,16 @@ function mountDevinZh(win, dictionary, rules) {
       if (node) { processNode(node); count++; } else active = null;
     }
     stats.longestFlushMs = Math.max(stats.longestFlushMs, win.performance.now() - start);
-    if (active || pending.size) scheduleFrame();
+    if (active || pending.size || pendingAttributes.size) scheduleFrame();
   }
 
   const observer = new win.MutationObserver(mutations => {
+    // A virtualized list can insert and detach many rows before the next frame.
+    // Do not retain their work until a background tab gets animation frames again.
+    if (mutations.some(mutation => mutation.type === 'childList' && mutation.removedNodes?.length)) {
+      for (const node of pending) if (!node.isConnected) pending.delete(node);
+      for (const element of pendingAttributes) if (!element.isConnected) pendingAttributes.delete(element);
+    }
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
         if (!eligible(mutation.target)) { stats.ignoredMutations++; continue; }
@@ -295,7 +319,7 @@ function mountDevinZh(win, dictionary, rules) {
       } else if (mutation.type === 'attributes') {
         const value = mutation.target.getAttribute(mutation.attributeName);
         if (value === attributeWrites.get(mutation.target)?.get(mutation.attributeName) || !eligible(mutation.target)) { stats.ignoredMutations++; continue; }
-        enqueue(mutation.target);
+        enqueueAttributes(mutation.target);
       }
     }
   });
@@ -306,14 +330,14 @@ function mountDevinZh(win, dictionary, rules) {
   enqueue(doc.body || doc.documentElement);
   const instance = {
     translate,
-    getStats() { return {...stats, pending: pending.size, active: !!active}; },
+    getStats() { return {...stats, pending: pending.size + pendingAttributes.size, pendingAttributes: pendingAttributes.size, active: !!active}; },
     dispose() {
       disposed = true;
       observer.disconnect();
       if (scheduled !== null) {
         if (animationScheduled) win.cancelAnimationFrame(scheduled); else win.clearTimeout(scheduled);
       }
-      pending.clear(); cache.clear(); active = null; scheduled = null;
+      pending.clear(); pendingAttributes.clear(); cache.clear(); active = null; scheduled = null;
       if (win[instanceKey] === instance) delete win[instanceKey];
     }
   };

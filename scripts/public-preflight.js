@@ -43,7 +43,8 @@ function preflight() {
     scanContent(git(['cat-file','blob',object.sha]),'history/'+object.sha.slice(0,12)+'/'+object.name,problems);
   }
   for (const file of ['LICENSE','LICENSES/KawaYiLab-Devin-Web-Chinese-MIT.txt','THIRD_PARTY_NOTICES.md',
-    'package-lock.json','docs/desktop.md','web/README.md','dist/Devin-Web-Zh.user.js','dist/build-report.json']) {
+    'package-lock.json','docs/desktop.md','web/README.md','dist/Devin-Web-Zh.user.js','dist/build-report.json',
+    'START_HERE.md','Start-Windows.cmd','Start-macOS.command','scripts/launcher.js']) {
     if (!files.includes(file)) problems.push('Required publication file is not tracked: ' + file);
   }
   const built = buildUserscript();
