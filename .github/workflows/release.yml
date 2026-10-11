@@ -30,9 +30,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          WEB_VERSION=$(node -p "require('./web/build').buildUserscript().version")
           gh release create "$RELEASE_TAG" --verify-tag \
-            --title "Devin 汉化 ${RELEASE_TAG} / 网页 ${WEB_VERSION}" \
+            --title "Devin 汉化 ${RELEASE_TAG}" \
             --notes-file release-assets/RELEASE_NOTES.md \
             release-assets/*.user.js release-assets/*.zip \
             release-assets/build-report.json release-assets/SHA256SUMS

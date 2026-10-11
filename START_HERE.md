@@ -2,7 +2,9 @@
 
 ## Windows：双击启动
 
-下载 `Devin-Desktop-Zh-Windows-0.4.0.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `Start-Windows.vbs`** 打开按钮窗口。旧 `Start-Windows.cmd` 也会打开同一个窗口。
+下载 `Devin-Desktop-Zh-Windows-1.0.14.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `Start-Windows.vbs`** 打开按钮窗口。旧 `Start-Windows.cmd` 也会打开同一个窗口。
+
+面向常规 Windows 10/11，需要系统的 PowerShell、Windows Script Host 与 .NET Framework 可用；系统限制脚本执行时入口可能打不开。首次需要 Node.js 和网络，Devin 版本还需通过兼容检查。目前实机验证为 Devin 3.10.48 / VS Code 1.126.0，不能保证每一种 Windows 环境和 Devin 构建都可直接应用。
 
 1. 首次需要 [Node.js 22.13+（推荐 24 LTS）](https://nodejs.org/zh-cn/download)，安装一次即可。未安装时，窗口会提供官方下载入口。Windows 窗口使用系统自带 .NET Framework，首次自动在工具缓存中生成，不安装额外 GUI 框架。
 2. 工具自动查找 Devin。找不到时点击【选择程序】，选中 `Devin.exe` 即可；不用输入路径。
@@ -26,7 +28,7 @@
 
 ## macOS：双击预览入口
 
-下载 `Devin-Desktop-Zh-macOS-Preview-0.4.0.zip`，解压后进入 `devin-zh`，**双击 `Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
+下载 `Devin-Desktop-Zh-macOS-Preview-1.0.14.zip`，解压后进入 `devin-zh`，**双击 `Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
 
 **macOS 当前只提供检查和准备报告，不会直接修改 Devin.app，不能完成客户端汉化安装。** 正式应用功能需要实际 Mac 上验证签名、登录和启动。修改签名应用里的资源会破坏签名封印，详见 [Apple 签名规则](https://developer.apple.com/library/archive/technotes/tn2206/_index.html)；工具不会自动重签或调整系统安全设置。
 

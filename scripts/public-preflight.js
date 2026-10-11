@@ -54,6 +54,11 @@ function preflight() {
     fs.readFileSync(path.join(ROOT,'dist/Devin-Web-Zh.user.js'),'utf8') !== built.source)
     problems.push('Published userscript is stale: run node web/build.js dist');
   const pkg = require('../package.json'), lock = require('../package-lock.json');
+  if (built.version !== pkg.version || !built.source.includes('// @version      '+pkg.version+'\n'))
+    problems.push('Userscript and desktop release versions differ');
+  const publishedReport = JSON.parse(fs.readFileSync(path.join(ROOT,'dist/build-report.json'),'utf8'));
+  if (publishedReport.version !== pkg.version)
+    problems.push('Published build report version differs from the release version');
   if (pkg.version !== lock.version || pkg.version !== lock.packages[''].version)
     problems.push('Package and lock versions differ');
   if (problems.length) throw new Error(problems.join('\n'));
