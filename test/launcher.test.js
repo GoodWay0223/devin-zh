@@ -36,7 +36,7 @@ test('discovery validates target layout and does not accept app.asar as editable
   fs.mkdirSync(path.dirname(asar),{recursive:true}); fs.writeFileSync(asar,'archive');
   assert.equal(validInstallation(path.dirname(asar)),false);
   mockApp(app);
-  assert.deepEqual(discover({platform:'darwin',home:dir,env:{},projectDir:project}),[app]);
+  assert.deepEqual(discover({platform:'darwin',home:dir,env:{},projectDir:project}),[fs.realpathSync(app)]);
   fs.unlinkSync(path.join(app,'out/nls.keys.json'));
   assert.deepEqual(discover({platform:'darwin',home:dir,env:{},projectDir:project}),[]);
 });
