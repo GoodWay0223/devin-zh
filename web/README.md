@@ -1,6 +1,6 @@
 # Devin 网页油猴汉化
 
-网页脚本版本 1.0.13，项目工具版本 0.3.9。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
+网页脚本版本 1.0.13，项目工具版本 0.3.10。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
 
 ## 首次安装
 

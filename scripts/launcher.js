@@ -6,6 +6,8 @@ const os = require('node:os');
 const cp = require('node:child_process');
 const ROOT = path.resolve(__dirname, '..');
 const {appRoot} = require('../src/config');
+let cachedWindowsHints;
+const windowsHints = () => cachedWindowsHints ??= require('./windows-installation').readWindowsHints();
 const TARGETS = ['product.json', 'out/vs/workbench/windsurf-chat-client/index.js',
   'out/vs/sessions/sessions.desktop.main.js', 'out/nls.messages.js', 'out/nls.messages.json', 'out/nls.keys.json'];
 
@@ -30,14 +32,34 @@ function validInstallation(root) {
     try { return fs.statSync(path.join(root, relative)).isFile(); } catch { return false; }
   });
 }
-function discover({env = process.env, platform = process.platform, projectDir = ROOT, home = os.homedir()} = {}) {
-  const roots = [appRoot({env, platform, projectDir})];
+function discover({env = process.env, platform = process.platform, projectDir = ROOT, home = os.homedir(), hints} = {}) {
+  const preferred = appRoot({env, platform, projectDir});
+  // Respect a remembered/explicit installation instead of asking again when
+  // another copy exists. A stale setting must not block fresh OS discovery.
+  if (validInstallation(preferred)) return [preferred];
+  const roots = [preferred];
   if (platform === 'darwin') roots.push(path.join(home, 'Applications/Devin.app/Contents/Resources/app'));
   if (platform === 'win32') {
     for (const prefix of [env.ProgramFiles, env['ProgramFiles(x86)']].filter(Boolean))
       roots.push(path.join(prefix, 'Devin', 'resources', 'app'));
+    const {executableFromIcon} = require('./windows-installation');
+    hints ??= process.platform === 'win32' ? windowsHints() : [];
+    for (const hint of hints) {
+      if (hint.kind === 'drive') {
+        // A few conventional folders per local drive; never scan entire disks.
+        for (const folder of ['Devin','Apps/Devin','Applications/Devin','AI/Devin','Program Files/Devin'])
+          roots.push(path.win32.join(hint.path,folder,'resources','app'));
+      } else if (hint.kind !== 'tool') {
+        try {roots.push(resolveInstallation(hint.kind === 'icon' ? executableFromIcon(hint.path) : hint.path,{platform}));} catch {}
+      }
+    }
   }
-  return [...new Set(roots.map(root => path.resolve(root)))].filter(validInstallation);
+  const unique = new Map();
+  for (const root of roots) if (validInstallation(root)) {
+    const resolved = fs.realpathSync(root), key = platform === 'win32' ? resolved.toLowerCase() : resolved;
+    if (!unique.has(key)) unique.set(key,resolved);
+  }
+  return [...unique.values()];
 }
 function saveLocal(root, {projectDir = ROOT, packFile} = {}) {
   const file = path.join(projectDir, '.devin-zh.local.json');
@@ -65,7 +87,7 @@ function ensureDependencies() {
     const acorn = JSON.parse(fs.readFileSync(path.join(ROOT, 'node_modules/acorn/package.json'), 'utf8'));
     if (acorn.version === require('../package.json').dependencies.acorn) return;
   } catch {}
-  console.log('首次使用：安装锁定的工具依赖（需要联网，仅安装到此文件夹）…');
+  console.log('首次启动，正在自动准备运行环境，请稍候（需要联网）…');
   // Use Node to run npm directly, with no shell and no command interpolation.
   const npmCli = [path.join(path.dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js'),
     path.resolve(path.dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js')].find(fs.existsSync);
@@ -101,12 +123,25 @@ async function main() {
   ensureDependencies();
   const readline = require('node:readline/promises').createInterface({input:process.stdin,output:process.stdout});
   async function chooseRoot(force = false) {
+    if (!force) console.log('正在自动查找 Devin…');
     const found = discover();
-    if (!force && found.length === 1) return found[0];
+    if (!force && found.length === 1) {
+      saveLocal(found[0]);
+      console.log('已自动找到 Devin，无需填写路径。');
+      return found[0];
+    }
     if (!force && found.length > 1) {
       console.log('发现多个安装，请选择：'); found.forEach((root,index)=>console.log(`${index+1}. ${root}`));
       const choice = Number(await readline.question('安装序号（回车手动输入）：'));
-      if (Number.isInteger(choice) && choice > 0 && choice <= found.length) return found[choice-1];
+      if (Number.isInteger(choice) && choice > 0 && choice <= found.length) {saveLocal(found[choice-1]); return found[choice-1];}
+    }
+    if (platform === 'win32' && !force) {
+      console.log('没有找到完整安装，请在文件选择窗口点选 Devin.exe。');
+      const selected = require('./windows-installation').chooseExecutable();
+      if (!selected) return null;
+      const root = resolveInstallation(selected);
+      if (!validInstallation(root)) throw new Error('所选程序旁没有完整的 Devin 界面文件，此布局暂不支持。');
+      saveLocal(root); return root;
     }
     while (true) {
       const input = await readline.question(platform === 'win32' ? '粘贴 Devin.exe、安装文件夹或 resources\\app 的完整路径（0 退出）：'
@@ -133,6 +168,8 @@ async function main() {
       if (choice === '6') {root = await chooseRoot(true); continue;}
       const env = {...process.env,DEVIN_APP:root};
       try {
+        if (platform === 'win32' && ['1','2','3','4'].includes(choice)) require('./launcher-backups').importVerifiedBackup(root, {projectDir:ROOT,
+          toolDirs:windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path)});
         if (choice === '1' || choice === '2') {
           if (choice === '2') {
             let pack = localPack();

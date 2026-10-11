@@ -2,11 +2,11 @@
 
 ## Windows：双击启动
 
-下载 `Devin-Desktop-Zh-Windows-0.3.9.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `Start-Windows.cmd`**。
+下载 `Devin-Desktop-Zh-Windows-0.3.10.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `Start-Windows.cmd`**。
 
 1. 首次使用需要 [Node.js 22.13+（推荐 24 LTS）](https://nodejs.org/zh-cn/download)。安装一次即可；没有安装时入口会告诉你怎么做。
 2. 首次启动会自动安装锁定的工具依赖，需要联网。之后常规汉化在本机完成。
-3. 工具会寻找 Devin。没找到时，粘贴 `Devin.exe` 或安装文件夹的完整路径即可，不需要自己定位 `resources/app`。
+3. 工具自动读取安装记录、正在运行的程序、桌面/开始菜单快捷方式及少量常用安装目录，找到唯一有效安装后直接使用并记住位置。若有多个有效安装，选择序号；确实没找到时弹出文件选择窗口，点选 `Devin.exe` 即可，无需输入路径。
 4. 输入 `1` 或直接回车，生成 Agent / 聊天界面汉化。保存工作并完全退出 Devin，再在提示处回车应用。
 5. 重新打开 Devin 检查界面。以后更新或恢复，仍双击这个文件。
 
@@ -23,7 +23,7 @@
 
 ## macOS：双击预览入口
 
-下载 `Devin-Desktop-Zh-macOS-Preview-0.3.9.zip`，解压后进入 `devin-zh`，**双击 `Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。
+下载 `Devin-Desktop-Zh-macOS-Preview-0.3.10.zip`，解压后进入 `devin-zh`，**双击 `Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。
 
 **macOS 当前只提供检查和准备报告，不会直接修改 Devin.app，不能完成客户端汉化安装。** 正式应用功能需要实际 Mac 上验证签名、登录和启动。修改签名应用里的资源会破坏签名封印，详见 [Apple 签名规则](https://developer.apple.com/library/archive/technotes/tn2206/_index.html)；工具不会自动重签或调整系统安全设置。
 
@@ -35,7 +35,9 @@
 
 ## 更新与保留备份
 
-升级汉化工具时，把新包解压到另一个目录，将旧目录的 `cache/` 和 `.devin-zh.local.json` 复制到新工具根目录，再使用新入口。原版备份是恢复依据，**不要删除旧工具文件夹里的 cache**。本机配置可能含语言包路径，移动语言包后需重新选择。
+Windows 新入口会从已有汉化工具快捷方式找到旧工具，只在校验当前安装、官方原版和已应用补丁都通过后，自动接续当前构建的可信备份。旧目录保留原样，未知修改或中断缓存不会被覆盖；不会整包复制其他缓存文件。
+
+无法找到旧工具或 macOS 升级时，将旧目录的 `cache/` 和 `.devin-zh.local.json` 复制到新工具根目录。原版备份是恢复依据，**不要删除旧工具文件夹里的 cache**。编辑器中文语言包需单独保留；本机配置可能含语言包路径，移动后需重新选择。
 
 Windows 上 Devin 更新后，先确认官方新版正常启动，再运行菜单 1 或 2；工具按新构建重新检查和生成补丁。旧报告不跨版本使用。详细步骤见 [更新指南](UPDATE_GUIDE.md)。
 
