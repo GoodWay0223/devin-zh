@@ -2,6 +2,10 @@
 setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
+if not "%~1"=="" goto console
+wscript.exe "%~dp0Start-Windows.vbs"
+exit /b 0
+:console
 where node.exe >nul 2>&1
 if errorlevel 1 (
   echo 请先安装 Node.js 22.13 或更高版本，推荐 Node.js 24 LTS。

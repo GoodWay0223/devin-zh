@@ -7,6 +7,8 @@
 # Preserve CRLF in archives as well as checked-out Windows launchers.
 *.cmd -text whitespace=cr-at-eol
 *.command text eol=lf
+*.ps1 text eol=lf
+*.vbs text eol=lf
 .gitattributes text eol=lf
 LICENSE text eol=lf
 web/upstream/*.js -text whitespace=-blank-at-eol,-blank-at-eof

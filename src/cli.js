@@ -9,26 +9,38 @@ const toolVersion = require('../package.json').version;
 const cmd = process.argv[2] || 'status';
 
 const option = name => process.argv.slice(3).find(x => x.startsWith('--' + name + '='))?.slice(name.length + 3);
+const progressOutput = process.argv.includes('--progress');
+const progress = (message,completed,total,busy=true) => {
+  if (progressOutput) console.log(JSON.stringify({type:'progress',message,completed,total,busy,unit:'steps'}));
+};
 function checkInstallation(baseline) {
   const unknown = I.integrityStatus(baseline).filter(x => ['missing', 'unknown'].includes(x.status));
   if (unknown.length) throw new Error('安装存在未知修改或缺失，未生成或应用补丁：' + unknown.map(x => x.relative).join('；'));
 }
 function prepare() {
-  const machineOutput = process.argv.includes('--json');
+  const machineOutput = process.argv.includes('--json') || progressOutput;
   const scope = option('scope') || 'all';
   if (!['all', 'web', 'nls'].includes(scope)) throw new Error('--scope 必须为 all/web/nls');
+  const total = scope === 'all' ? 5 : scope === 'web' ? 4 : 3;
+  let completed = 0;
+  progress('检查原版并保存恢复备份',completed,total);
   const baseline = I.loadBaseline({ root: C.ROOT, create: true });
   checkInstallation(baseline);
+  progress('原版检查和备份完成',++completed,total,false);
   const D = C.loadDict();
   const changes = [];
   if (scope !== 'nls') for (const relative of I.FILES.slice(0, 2)) {
+    progress(relative === I.FILES[0] ? '正在汉化聊天界面' : '正在汉化会话和设置界面',completed,total);
     const result = patchSource(baseline.originals.get(relative), D, undefined, { requireCompatibility: true });
     changes.push({ relative, ...result });
+    progress('界面补丁已生成',++completed,total,false);
     if (!machineOutput) console.log(`${relative}: i18n ${result.stats.i18n}，React 文本 ${result.stats.ui}，动态导航/菜单 ${result.stats.display}，拒绝 ${result.stats.rejected}`);
   }
   if (scope !== 'web') {
+    progress('正在汉化编辑器菜单',completed,total);
     const result = require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
     changes.push(...result.changes);
+    progress('编辑器菜单补丁已生成',++completed,total,false);
     if (!machineOutput) console.log(`NLS: ${result.stats.translated}/${result.stats.total}，拒绝 ${result.stats.rejected}`);
   }
   const digest = I.sha(JSON.stringify(changes.map(x => [x.relative, I.sha(x.source)])));
@@ -41,8 +53,10 @@ function prepare() {
     report.files.push({ relative: change.relative, originalHash: baseline.manifest.files[change.relative], generatedHash: I.sha(change.source), stats: change.stats, rejections: change.rejections, compatibility: change.compatibility });
   }
   const reportFile = path.join(directory, 'report.json');
+  progress('保存本版本的汉化结果',completed,total);
   fs.writeFileSync(reportFile, JSON.stringify(report, null, 2) + '\n');
-  console.log(machineOutput ? JSON.stringify({reportFile,scope,files:report.files},null,2) : '已准备，未修改安装文件。报告: ' + reportFile);
+  progress('准备完成，尚未修改 Devin',++completed,total,false);
+  console.log(progressOutput ? JSON.stringify({type:'prepared',reportFile,scope,files:report.files}) : machineOutput ? JSON.stringify({reportFile,scope,files:report.files},null,2) : '已准备，未修改安装文件。报告: ' + reportFile);
   return { baseline, changes, reportFile };
 }
 function apply() {

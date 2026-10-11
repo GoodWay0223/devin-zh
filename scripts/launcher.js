@@ -172,19 +172,18 @@ async function main() {
           toolDirs:windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path)});
         if (choice === '1' || choice === '2') {
           if (choice === '2') {
-            let pack = localPack();
-            if (!fs.existsSync(pack)) {
-              console.log('需先取得与 Devin 内 VS Code 主次版本相同的微软中文语言包，详见 docs/desktop.md。');
-              const selected = (await readline.question('粘贴解压后 translations/main.i18n.json 的完整路径（回车取消）：')).trim();
-              if (!selected) continue;
-              pack = selected.replace(/^(["'])(.*)\1$/, '$2');
-              if (!path.isAbsolute(pack) || !fs.existsSync(pack)) throw new Error('未找到此语言包文件。');
-              saveLocal(root,{packFile:pack});
-            }
-            env.DEVIN_ZH_PACK = pack;
+            const pack = await require('./language-pack').ensureLanguagePack({root,projectDir:ROOT,
+              toolDirs:platform==='win32'?windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path):[],
+              onProgress:event=>{if(event.phase==='local-search'||event.phase==='query'||event.phase==='ready')console.log(event.message);}});
+            env.DEVIN_ZH_PACK = pack.packFile;
           }
           console.log('正在验证原版、备份并生成本版本补丁…大型客户端可能需要几分钟，请保持窗口打开。');
-          const plan = runCli(['prepare', '--scope='+ (choice === '2' ? 'all' : 'web'), '--json'], env, true);
+          const run = require('./gui-backend').createRunner({projectDir:ROOT,log:()=>{},emit:event=>{
+            const counter=event.total>0?`[${event.completed}/${event.total}] `:'';
+            if(process.stdout.isTTY){process.stdout.write('\r\x1b[2K'+counter+event.message);}else console.log(counter+event.message);
+          }});
+          const plan = await run(process.execPath,[path.join(ROOT,'src/cli.js'),'prepare','--scope='+ (choice === '2' ? 'all' : 'web'),'--progress'],{env,structured:true});
+          console.log('');
           console.log('准备通过，报告：' + plan.reportFile);
           if (platform === 'darwin') {console.log('macOS 预览完成。官方 .app 没有修改。'); continue;}
           console.log('请先保存工作并完全退出 Devin。应用后可用菜单 4 恢复原版。');

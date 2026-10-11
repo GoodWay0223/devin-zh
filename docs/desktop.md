@@ -4,7 +4,7 @@
 
 浏览器中的 Devin 网页请使用[油猴脚本指南](../web/README.md)。客户端中加载的云端网页与本地 Agent 界面是不同来源，目前不会通过修改客户端来给跨源网页注入脚本。
 
-**不想使用命令行**：Windows 解压后双击 `Start-Windows.cmd`，使用菜单 1 汉化、菜单 4 恢复。macOS 双击 `Start-macOS.command`，当前仅检查/准备预览，不能直接应用。两个系统的首次准备和入口说明见 [START_HERE.md](../START_HERE.md)。以下是 Windows 手动操作的详细流程。
+**不想使用命令行**：Windows 解压后双击 `Start-Windows.vbs`（旧 `.cmd` 也能打开），默认【完整汉化】自动查找/下载匹配的中文资源。点【开始汉化】，完成后保存工作并退出 Devin，再点【应用汉化】；使用【恢复原版】恢复。窗口显示步骤与下载进度，详细日志在【更多操作】里。macOS 双击 `Start-macOS.command`，当前仅检查/准备预览。详见 [START_HERE.md](../START_HERE.md)。以下是手动 CLI 的详细流程。
 
 ## 当前验证范围
 
@@ -13,7 +13,7 @@
 | 操作系统 | Windows |
 | 客户端构建 | Devin Desktop 3.10.48 / VS Code 1.126.0 |
 | 已应用并启动验收的补丁 | 工具 0.3.0，已核对客户端启动及本地界面 |
-| 本次发布的工具 | 0.3.10，Windows 自动发现安装、文件选择和可信备份接续；汉化补丁逻辑未变，macOS 仍仅检查预览 |
+| 本次发布的工具 | 0.4.0，Windows 按钮窗口、自动中文资源、真实进度；完整准备实机通过，未重新应用当前汉化，macOS 仍仅检查预览 |
 | 其他客户端版本 | 需要重新执行兼容检查及启动验收，没有通用兼容承诺 |
 
 词典可以复用，生成的安装补丁必须对应当前客户端构建。更新 Devin 后不能直接复制旧补丁或旧报告。
@@ -80,7 +80,9 @@ npm test
 
 ### 可选：同时汉化编辑器框架
 
-编辑器菜单及框架使用 NLS 资源。另行取得微软的[适用于 VS Code 的中文（简体）语言包](https://marketplace.visualstudio.com/items?itemName=MS-CEINTL.vscode-language-pack-zh-hans)，其版本的 **major/minor 必须与客户端内 VS Code 版本一致**，而不是与 Devin Desktop 版本号一致。例如，内置 VS Code 为 `1.126.0` 时，需要 `1.126.x` 的语言包。
+编辑器菜单及框架使用 NLS 资源。**图形入口会自动取得，用户无需进入 Devin 安装扩展。** 它先检查现有缓存与常用扩展目录，缺少时查询微软 Marketplace、下载 VSIX，只提取两份翻译数据并校验发布者、版本、JSON 和 ZIP；不会安装或执行扩展。数据保存在私有 `cache/language-packs/`。
+
+以下只用于手动 CLI：取得微软的[适用于 VS Code 的中文（简体）语言包](https://marketplace.visualstudio.com/items?itemName=MS-CEINTL.vscode-language-pack-zh-hans)，其版本的 **major/minor 必须与客户端内 VS Code 版本一致**，而不是与 Devin Desktop 版本号一致。例如，内置 VS Code 为 `1.126.0` 时，需要 `1.126.x` 的语言包。
 
 将 VSIX 解压到本地目录，保留完整的 `extension` 结构，尤其是 `extension/package.json` 和 `extension/translations/main.i18n.json`。设置语言包路径后重新检查：
 

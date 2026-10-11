@@ -24,7 +24,8 @@ try {
     Get-ChildItem -LiteralPath $folder -Filter '*Devin*.lnk' -File -Recurse -ErrorAction SilentlyContinue | ForEach-Object {
       $link = $shell.CreateShortcut($_.FullName)
       if ([IO.Path]::GetFileName($link.TargetPath) -ieq 'Devin.exe') { Add-Hint 'shortcut' $link.TargetPath }
-      if ([IO.Path]::GetFileName($link.TargetPath) -ieq 'Start-Windows.cmd') { Add-Hint 'tool' $link.WorkingDirectory }
+      $targetName = [IO.Path]::GetFileName($link.TargetPath)
+      if ($targetName -in @('Start-Windows.cmd','Start-Windows.vbs') -or ($targetName -ieq 'wscript.exe' -and $link.Arguments -match 'Start-Windows\.vbs(?:"|\s|$)')) { Add-Hint 'tool' $link.WorkingDirectory }
     }
   }
 } catch {}

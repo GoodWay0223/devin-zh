@@ -11,8 +11,8 @@
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
 | **网页油猴脚本** | **1.0.13** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **0.3.10** | 双击 `Start-Windows.cmd`，自动定位安装，按菜单汉化或恢复 |
-| **macOS 客户端预览** | **0.3.10** | 双击 `Start-macOS.command`，仅检查/准备，暂不写入 `.app` |
+| **Windows 客户端工具** | **0.4.0** | 双击 `Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
+| **macOS 客户端预览** | **0.4.0** | 双击 `Start-macOS.command`，资源自动准备，暂不写入 `.app` |
 
 **[下载最新发布版](https://github.com/GoodWay0223/devin-zh/releases/latest)** · **[解压后运行哪个文件](START_HERE.md)** · [网页使用与维护](web/README.md) · [客户端详细安装](docs/desktop.md) · [更新后重新汉化](UPDATE_GUIDE.md)
 
@@ -38,9 +38,9 @@
 
 ## 客户端：汉化本地 Agent 界面
 
-**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-0.3.10.zip`，解压进入 `devin-zh`，双击 **`Start-Windows.cmd`**。首次需安装 **Node.js 22.13+（推荐 24 LTS）**；入口自动准备依赖，并从运行进程、注册表和快捷方式查找安装。唯一有效安装直接使用并记住路径，没找到时弹出文件选择窗口，不必输入路径。已有汉化工具快捷方式时，可自动接续经校验的当前构建原版备份。按菜单 1 汉化、菜单 4 恢复，不需要手动输入以下命令。
+**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-0.4.0.zip`，解压进入 `devin-zh`，双击 **`Start-Windows.vbs`** 打开按钮窗口。旧 `.cmd` 也会打开同一窗口。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
 
-**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-0.3.10.zip`，双击 **`Start-macOS.command`**。这是仅检查/准备报告的预览版，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
+**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-0.4.0.zip`，双击 **`Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
 
 以下命令适用于想自行操作的 Windows 用户，需要正常工作的官方 Devin Desktop：
 
@@ -70,7 +70,7 @@ node src/cli.js apply --prepared="$preparedReport"
 
 重新打开 Devin，检查会话、输入框及模式菜单。工具不会替你关闭正在运行的客户端；检测到对应进程时拒绝写入。
 
-编辑器菜单及框架汉化需要另行取得与客户端内 **VS Code major/minor 匹配**的微软中文语言包，设置 `DEVIN_ZH_PACK`，再 `prepare --scope=all`。完整步骤见[客户端指南](docs/desktop.md)。工具包不附带 Devin 程序、微软语言包或本机缓存。
+编辑器菜单需要与客户端内 **VS Code major/minor 匹配**的微软中文语言资源，Windows 按钮入口会自动取得。手动 CLI 用户也可设置 `DEVIN_ZH_PACK` 再 `prepare --scope=all`，详见[客户端指南](docs/desktop.md)。工具包不附带 Devin 程序、微软语言包或本机缓存。
 
 ### 完整性提示与恢复
 
@@ -103,11 +103,11 @@ node src/cli.js status
 
 | 检查 | 结果与边界 |
 | --- | --- |
-| 项目回归测试 | 103 项，覆盖翻译/安装契约、用户内容保护、混合侧栏、性能、原生通知与双击入口/自动发现/可信备份接续/平台写入边界；Windows 专用发现测试在其他系统跳过 |
+| 项目回归测试 | 122 项，新增语言包自动发现/下载/版本/ZIP/中断和压缩响应、GUI 完整准备/真实步骤/取消/Windows 编译检查；Windows 专用检查在其他系统跳过 |
 | 网页 DOM 回归 | 当前源码在真实 Chrome 的独立验证页 72 项通过；20,000 次正文/会话更新不增加遍历或规则执行，不是 Devin 列表加载验收 |
 | 登录态网页检查 | 本次巡查 Recent 在两种排序下均为空，控制台有登录令牌错误；1.0.13 尚未替换用户油猴后验收，不能声称 Recent 数据加载已恢复 |
 | 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
-| 本次客户端工具 | 0.3.10 在没有本机配置的情况下从 Windows 安装记录找到自定义安装；校验自动备份接续，未重写当前客户端汉化。补丁准备/兼容检查与 0.3.9 相同。macOS 仅检查预览，无 Devin.app 启动验收 |
+| 本次客户端工具 | 0.4.0 在真实 Windows 按钮窗口完成自动定位、完整资源取得与 5/5 步准备，未点击应用、未重写当前客户端；独立隔离本地包后从微软下载匹配版本成功。macOS 仍仅检查预览 |
 
 检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
 

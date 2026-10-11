@@ -45,7 +45,8 @@ function preflight() {
   for (const file of ['LICENSE','LICENSES/KawaYiLab-Devin-Web-Chinese-MIT.txt','THIRD_PARTY_NOTICES.md',
     'package-lock.json','docs/desktop.md','web/README.md','dist/Devin-Web-Zh.user.js','dist/build-report.json',
     'START_HERE.md','Start-Windows.cmd','Start-macOS.command','scripts/launcher.js',
-    'scripts/windows-installation.js','scripts/launcher-backups.js']) {
+    'scripts/windows-installation.js','scripts/launcher-backups.js','scripts/language-pack.js','scripts/gui-backend.js',
+    'Start-Windows.vbs','scripts/launcher-windows.cs','scripts/build-windows-gui.ps1']) {
     if (!files.includes(file)) problems.push('Required publication file is not tracked: ' + file);
   }
   const built = buildUserscript();

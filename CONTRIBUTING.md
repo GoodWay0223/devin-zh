@@ -36,3 +36,5 @@ node web/serve-fixture.js
 5. 核对实际 GitHub Release 的公开状态、下载内容及校验值。不要把工作流已启动当作发布完成。
 
 发布工具包不重新分发 Devin 官方程序或微软语言包。升级工具时保留原有本机安装缓存，重新生成准备报告。
+
+Windows 图形入口源码是 `scripts/launcher-windows.cs`，系统 .NET Framework 在本机缓存生成窗口；后台协议在 `scripts/gui-backend.js`，CLI `--progress` 发出真实步骤事件。语言包获取在 `scripts/language-pack.js`，只从微软获取翻译数据、严格匹配版本，不执行扩展。进度不能编造预计百分比；GUI 改动要做真实窗口及准备/退出/应用边界验收。`cache/gui/`、语言包和日志不得发布。
