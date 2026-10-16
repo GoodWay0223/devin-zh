@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
-// @version      1.0.16
+// @version      1.0.17
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @icon         data:image/png;base64,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
@@ -1163,7 +1163,7 @@ const dictionary = {
  "OpenAI's most capable model": "OpenAI 能力最强的模型",
  "Good at instruction following": "擅长遵循指令",
  "Capability": "能力",
- "Higher capability means more powerful models but higher costs": "能力越高，模型越强大，但成本也越高。",
+ "Higher capability means more powerful models but higher costs": "能力越高，使用的模型越强大，但费用也越高",
  "Introducing Devin Fusion": "向您介绍 Devin Fusion",
  "A frontier model and a fast sidekick, working as one — top quality, lower cost.": "顶尖模型与快速模型协同运行——带来顶级质量，并大幅降低成本。",
  "Try now": "立即体验",

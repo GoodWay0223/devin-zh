@@ -9,8 +9,11 @@ function patchSource(source, dictionary = C.loadDict(), displayDictionary = C.re
   for (const block of analysis.blocks) {
     if (!block.en) continue;
     const [obj, count] = C.mapLeaves(block.obj, (key, en) => {
-      if (!C.isEnglish(en)) return;
-      const zh = dictionary.resolveI18n(key, en);
+      const english = C.isEnglish(en);
+      // Reviewed exact entries may contain typography outside the default ASCII guard.
+      const reviewed = !english && dictionary.human && Object.hasOwn(dictionary.human, en) && typeof dictionary.human[en] === 'string';
+      if (!english && !reviewed) return;
+      const zh = reviewed ? dictionary.human[en] : dictionary.resolveI18n(key, en);
       if (zh === undefined || zh === en) return;
       const problem = translationProblem(en, zh);
       if (problem) { stats.rejected++; rejections.push({ kind: 'i18n', key, problem }); return; }

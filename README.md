@@ -10,9 +10,9 @@
 
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
-| **网页油猴脚本** | **1.0.16** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **1.0.16** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
-| **macOS 客户端预览** | **1.0.16** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
+| **网页油猴脚本** | **1.0.17** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **1.0.17** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
+| **macOS 客户端预览** | **1.0.17** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
 
 三端共享一个发布版本，统一从 `package.json` 生成。此前分开编号的版本仍保留在更新记录中。
 
@@ -23,10 +23,10 @@
 适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
 
 1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.16.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.17.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
 3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
 
-覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,582 条精确词条、104 条规则**；相较原版 1.0.7 新增 388 条词条并修订 14 条译文。
+覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。当前构建含 **1,582 条精确词条、104 条规则**；相较原版 1.0.7 新增 388 条词条并修订 15 条译文。
 
 `Normal`、`Agent`、`Fusion`、`Ultra`、`Lite` 及模型名称保留英文；只汉化能力和模式的介绍、快速模式与套餐等操作文案。模型介绍中列举的名字和版本保留，已确认的句式可在模型更新后继续复用。
 
@@ -40,7 +40,7 @@
 
 ## 客户端：汉化本地 Agent 界面
 
-**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-1.0.16.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
+**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-1.0.17.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
 
 <img src="assets/devin-zh-128.png" width="64" height="64" alt="Devin 汉化工具 A 款图标">
 
@@ -48,7 +48,7 @@
 
 按钮入口面向常规 Windows 10/11 环境，需要 PowerShell、Windows Script Host 和 .NET Framework 可用；系统禁止运行脚本或缺少组件时可能无法启动。Windows 支持下限也受 [Node.js 平台要求](https://github.com/nodejs/node/blob/v22.x/BUILDING.md#platform-list)限制，.NET 随系统提供的版本见 [Microsoft 文档](https://learn.microsoft.com/en-us/dotnet/framework/install/versions-and-dependencies)。工具会校验当前 Devin 的资源结构，未知版本不能保证直接应用；实机验证范围见下表。
 
-**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-1.0.16.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
+**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-1.0.17.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
 
 以下命令适用于想自行操作的 Windows 用户，需要正常工作的官方 Devin Desktop：
 
@@ -107,15 +107,18 @@ node src/cli.js status
 
 ## 验证记录
 
-截至 2026-10-11：
+截至 2026-10-16：
 
 | 检查 | 结果与边界 |
 | --- | --- |
-| 项目回归测试 | 122 项，新增语言包自动发现/下载/版本/ZIP/中断和压缩响应、GUI 完整准备/真实步骤/取消/Windows 编译检查；Windows 专用检查在其他系统跳过 |
-| 网页 DOM 回归 | 当前源码在真实 Chrome 的独立验证页 72 项通过；20,000 次正文/会话更新不增加遍历或规则执行，不是 Devin 列表加载验收 |
-| 登录态网页检查 | 本次巡查 Recent 在两种排序下均为空，控制台有登录令牌错误；1.0.13 尚未替换用户油猴后验收，不能声称 Recent 数据加载已恢复 |
-| 客户端真实启动 | 工具 0.3.0 在 Devin Desktop 3.10.48 / VS Code 1.126.0 完成启动和关键本地界面验证 |
-| 本次客户端工具 | 1.0.16 统一 A 款图标、链接移到右下角，安装逻辑沿用 0.4.0；0.4.0 真实 Windows 窗口完成自动定位、资源取得与 5/5 步准备。macOS 仍仅检查预览 |
+| 项目回归测试 | 123 项通过，本次新增已审校 EN JSON Unicode 文本回归，继续覆盖版本/备份/事务、语言包和 Windows GUI；Windows 专用检查在其他系统跳过 |
+| 网页 DOM 回归 | 此前网页引擎在真实 Chrome 的独立验证页 72 项通过；20,000 次正文/会话更新不增加遍历或规则执行，不是 Devin 列表加载验收 |
+| 登录态网页检查 | 此前巡查 Recent 在两种排序下均为空，控制台有登录令牌错误；尚未完成用户油猴更新后的该项验收，不能声称 Recent 数据加载已恢复 |
+| 客户端真实启动 | 1.0.17 应用于 Devin Desktop 3.10.67 / VS Code 1.126.0 后已退出重开，窗口、会话列表和编辑器框架菜单正常 |
+| 本次新版适配 | 原版 11/11 校验、两份本地界面脚本与 NLS 兼容检查通过，四个目标文件事务应用成功；Devin 设置可打开，两条 SSH 说明的中文已实机确认 |
+| 模型与模式菜单 | 模型选择、排序子菜单和权限模式菜单可正常打开；搜索/最近使用/查看更多等文案及权限模式说明显示中文，Fusion、Adaptive 和模型名保持英文；只打开检查，未改变模式或发送模型请求 |
+| 语言服务 | 重开后本次日志出现 Language server started 和 LS lspClient started successfully，未再出现此前服务初始化失败；未发送模型请求 |
+| 构建与备份 | 3.10.67 按新构建单独保存原版，保留 3.10.48 旧备份；工具保留 A 款图标、按钮窗口和自动中文资源流程。macOS 仍仅检查预览 |
 
 检查通过、准备成功和实际应用是不同阶段。其他客户端版本及未打开的详情弹窗仍需验证。发布后的持续检查见 [GitHub Actions](https://github.com/GoodWay0223/devin-zh/actions)。
 

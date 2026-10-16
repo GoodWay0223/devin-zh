@@ -33,6 +33,40 @@ for (const quote of ["'", '"', '`']) test(`EN JSON resources translate when stor
   assert.doesNotThrow(() => acorn.parse(result.source, { ecmaVersion: 'latest', sourceType: 'module' }));
 });
 
+test('only reviewed exact Unicode EN resource entries translate and still validate placeholders', () => {
+  const fast = 'Best effort; may use standard speed if Fast isn’t available. Roughly 2–5× the cost when available.';
+  const unknown = 'Unreviewed — {{value}}', inherited = 'Inherited — description';
+  const nonString = 'Invalid — entry', placeholder = 'Selected “{{name}}”';
+  const actual = C.loadDict();
+  const reviewed = Object.assign(Object.create({ [inherited]: '继承的说明' }), actual.human, {
+    [nonString]: 17, [placeholder]: '已选择',
+  });
+  const candidate = {
+    ...actual, human: reviewed,
+    resolveI18n: (key, en) => en === unknown ? '未经审核的草稿 — {{value}}'
+      : en === inherited || en === nonString ? '未审核的说明' : actual.resolveI18n(key, en),
+  };
+  const en = {
+    manageAccess: { accessLevel: 'Access level', add: 'Add', done: 'Done' },
+    fast, unknown, inherited, nonString, placeholder,
+  };
+  const other = { manageAccess: { accessLevel: 'Nivel de acceso', add: 'Add', done: 'Done' }, fast };
+  const otherSource = `const other=JSON.parse(${JSON.stringify(JSON.stringify(other))});`;
+  const encoded = JSON.stringify(en).replace(/[’–×]/g, char => '\\u' + char.charCodeAt(0).toString(16).padStart(4, '0'));
+  const source = `const resource=JSON.parse(${JSON.stringify(encoded)});\n${otherSource}`;
+  assert.equal(C.isEnglish(fast), false);
+  assert.ok(source.includes('\\\\u2019') && source.includes('\\\\u2013') && source.includes('\\\\u00d7'));
+  assert.equal(candidate.resolveI18n('', unknown), '未经审核的草稿 — {{value}}');
+  const result = patchSource(source, candidate);
+  const blocks = C.analyze(result.source).blocks;
+  assert.equal(blocks[0].obj.fast, '尽可能使用快速响应；若快速模式不可用，可能改用标准速度。可用时费用约为 2–5 倍。');
+  for (const key of ['unknown', 'inherited', 'nonString', 'placeholder']) assert.equal(blocks[0].obj[key], en[key]);
+  assert.deepEqual(blocks[1].obj, other);
+  assert.ok(result.source.endsWith(otherSource));
+  assert.equal(result.stats.rejected, 1);
+  assert.deepEqual(result.rejections, [{ kind: 'i18n', key: 'placeholder', problem: 'placeholder-or-markup' }]);
+});
+
 test('non-EN resources, animations, emoji and bootstrap code remain byte-identical', () => {
   const source = `
     const es=JSON.parse('{"manageAccess":{"accessLevel":"Nivel de acceso","add":"Add","done":"Done"}}');
