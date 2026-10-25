@@ -37,13 +37,16 @@ const settings=`import {j as get} from './resources-random.js';import {r as Row}
 var JSX;function init(){JSX=get()}
 function formatter(description,linkText,linkUrl){let joined=description.join(' ');return linkText?JSX.jsxs('span',{children:[joined,' ',JSX.jsx('a',{href:linkUrl,target:'_blank',rel:'noreferrer',children:linkText})]}):joined;}
 function Workspace({setting}){const shown=formatter(setting.description,setting.linkText,setting.linkUrl);return JSX.jsx(Row,{id:setting.id,label:setting.label,description:shown,children:JSX.jsx('input',{value:setting.value,onChange:setting.update})});}
+function SettingChoice({setting}){const choices=React.useMemo(()=>{let result=[];for(const option of setting.options){result.push({value:JSON.stringify(option.value),label:option.label,original:option});}return result;},[setting.options]);const display=React.useMemo(()=>choices.map(({value,label})=>({value,label})),[choices]);return JSX.jsx(Row,{id:setting.id,label:setting.label,description:setting.description,children:JSX.jsxs('select',{value:JSON.stringify(setting.value),onValueChange:value=>setting.update(choices.find(option=>option.value===value).original.value),items:display,children:choices.map(option=>JSX.jsx('option',{value:option.value,children:JSX.jsx('span',{children:option.label})}))})});}
 function includeWorkspaceSettings(){};export {Workspace as w};`;
 const fusion='Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost';
 const normal='Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra';
 const menu=`import {j as get} from './resources-random.js';var JSX;function init(){JSX=get()}
 const defaults={fusionDescription:${JSON.stringify(fusion)},capability:'Capability',speed:'Speed'};
-function Menu({fusion,items,value,onValueChange,cardsEnabled,labels}){const copy={...defaults,...labels};return JSX.jsxs('menu',{children:[JSX.jsx('span',{children:copy.fusionDescription}),...items.map(item=>JSX.jsx(Item,{item,selected:item.id===value,speed:null,checkSide:'right',cardsEnabled,onSelect:()=>onValueChange(item.id)}))]});}
-function Item({item,selected,speed,checkSide,cardsEnabled,onSelect}){return JSX.jsx(Card,{card:item.card,fallbackTitle:item.label});}
+function Menu({fusion,items,value,onValueChange,cardsEnabled,labels}){const copy={...defaults,...labels},sections=group(items);return JSX.jsxs('menu',{children:[JSX.jsx('span',{children:copy.fusionDescription}),...items.map(item=>JSX.jsx(Item,{item,selected:item.id===value,speed:null,checkSide:'right',cardsEnabled,onSelect:()=>onValueChange(item.id)})),...sections.map(section=>JSX.jsx('header',{children:JSX.jsx('span',{children:section.label})}))]});}
+function group(items){let sections=[];for(const item of items){const section=item.section;if(section)sections.push({...section,items:[item]});}return sections;}
+function Item({item,selected,speed,checkSide,cardsEnabled,onSelect}){return JSX.jsxs('div',{children:[JSX.jsx(Card,{card:item.card,fallbackTitle:item.label}),item.card.toggles?.map(toggle=>JSX.jsx(Toggle,{label:toggle.label,checked:toggle.checked,disabled:toggle.disabled,disabledTooltip:toggle.disabledTooltip,onToggle:toggle.onCheckedChange}))]});}
+function Toggle({label,checked,disabled,disabledTooltip,onToggle}){return JSX.jsxs('button',{role:'menuitemcheckbox',checked,disabled,onClick:()=>onToggle(!checked),children:[JSX.jsx('span',{children:label})]});}
 function Card({card,fallbackTitle}){return JSX.jsxs('aside',{children:[JSX.jsx('span',{children:card.title??fallbackTitle}),JSX.jsx('span',{children:card.description})]});}
 export {Menu as menu};`;
 const consumer=`import {j as get} from './resources-random.js';import {menu as Menu} from './menu-random.js';var JSX;function init(){JSX=get()}
@@ -130,7 +133,32 @@ test('unknown description helpers and chat consumers never gain settings transla
 });
 function capabilities(overrides){const g=graph(overrides);return {...g,...H.capabilityDescriptions(names.menu,g.metas.get(names.menu),g.exportsByFile,g.metas)};}
 function renderMenu(source,items){const jsx=(type,props)=>typeof type==='function'?type(props):{type,props},context={get:()=>({jsx,jsxs:jsx}),items};vm.runInNewContext(source.replace(/import[^;]+;/g,'').replace(/export[^;]+;/g,'')+'init();globalThis.result=Menu({items,value:items[0].id,onValueChange:()=>{},cardsEnabled:true});',context);return context.result;}
-function children(node){if(!node||typeof node!=='object')return [node];const values=node.props?.children;return [node,...(Array.isArray(values)?values.flatMap(children):values===undefined?[]:children(values))];}
+function children(node){if(Array.isArray(node))return node.flatMap(children);if(!node||typeof node!=='object')return [node];const values=node.props?.children;return [node,...(Array.isArray(values)?values.flatMap(children):values===undefined?[]:children(values))];}
+test('native setting choice labels translate separately from option values and registry data',()=>{
+  const g=graph(),result=H.settingsDropdownDisplays(names.settings,g.metas.get(names.settings),g.exportsByFile,{Medium:'中',Low:'低'},g.metas);assert.equal(result.replacements.length,2);
+  const patched=apply(settings,[...result.captures,...result.replacements]),jsx=(type,props)=>typeof type==='function'?type(props):{type,props};
+  for(const id of ['supercompleteAggression','completionMode','registry.user-setting']){let selected;const setting={id,label:'Setting',description:'Description',value:'Medium',options:[{label:'Medium',value:'Medium'},{label:'Future label',value:42}],update:value=>{selected=value}},before=JSON.stringify(setting),context={get:()=>({jsx,jsxs:jsx}),Row:props=>({type:'row',props}),React:{useMemo:fn=>fn()},setting};
+    vm.runInNewContext(patched.replace(/import[^;]+;/g,'').replace(/export[^;]+;/g,'')+'init();globalThis.result=SettingChoice({setting});',context);
+    const widget=context.result.props.children,label=id==='registry.user-setting'?'Medium':'中';assert.equal(widget.props.items[0].label,label);assert.ok(children(widget).includes(label));assert.equal(widget.props.items[0].value,'"Medium"');assert.equal(widget.props.value,'"Medium"');widget.props.onValueChange('"Medium"');assert.equal(selected,'Medium');assert.equal(JSON.stringify(setting),before);assert.equal(widget.props.items[1].label,'Future label');
+  }
+});
+test('minified setting callbacks cannot shadow the captured native setting guard',()=>{
+  const original=settings.slice(settings.indexOf('function SettingChoice'),settings.indexOf('function includeWorkspaceSettings'));
+  const compact=`function SettingChoice({setting:e}){const __devinZhSetting0='occupied';const i=React.useMemo(()=>{let t=[];for(const i of e.options){let e=JSON.stringify(i.value);t.push({value:e,label:i.label,original:i});}return t;},[e.options]);const o=React.useMemo(()=>i.map(({value:e,label:t})=>({value:e,label:t})),[i]);return JSX.jsx(Row,{id:e.id,label:e.label,description:e.description,children:JSX.jsxs('select',{value:JSON.stringify(e.value),onValueChange:t=>e.update(i.find(e=>e.value===t).original.value),items:o,children:i.map(e=>JSX.jsx('option',{value:e.value,children:JSX.jsx('span',{children:e.label})}))})});}\n`;
+  const source=settings.replace(original,compact),g=graph({settings:source}),table={Low:'低',Medium:'中等',High:'高',Off:'关闭'},result=H.settingsDropdownDisplays(names.settings,g.metas.get(names.settings),g.exportsByFile,table,g.metas);
+  assert.equal(result.replacements.length,2);assert.equal(result.captures.length,1);assert.match(result.captures[0].value,/const __devinZhSetting1=e/);
+  const patched=apply(source,[...result.captures,...result.replacements]),jsx=(type,props)=>typeof type==='function'?type(props):{type,props};
+  for(const id of ['supercompleteAggression','completionMode','registry.user-setting']){
+    let selected;const options=['Low','Medium','High','Off','Autocomplete','Supercomplete','Future label',42].map((label,index)=>({label,value:index})),setting={id,label:'Setting',description:'Description',value:1,options,update:value=>{selected=value}},before=JSON.stringify(setting),context={get:()=>({jsx,jsxs:jsx}),Row:props=>({type:'row',props}),React:{useMemo:fn=>fn()},setting};
+    vm.runInNewContext(patched.replace(/import[^;]+;/g,'').replace(/export[^;]+;/g,'')+'init();globalThis.result=SettingChoice({setting});',context);
+    const widget=context.result.props.children;
+    options.forEach((option,index)=>{const expected=id==='registry.user-setting'?option.label:table[option.label]??option.label;assert.equal(widget.props.items[index].label,expected);assert.ok(children(widget).includes(expected));assert.equal(widget.props.items[index].value,JSON.stringify(option.value));});
+    widget.props.onValueChange('1');assert.equal(selected,1);assert.equal(JSON.stringify(setting),before);
+  }
+});
+test('unknown option sources and projection consumers cannot use the native settings display rule',()=>{
+  for(const source of [settings.replace('original:option','original:other'),settings.replace('label:option.label,original','label:option.message,original'),settings.replace('items:display','items:choices'),settings.replace('return JSX.jsx(Row,{id:setting.id,label:setting.label,description:setting.description','log(display);return JSX.jsx(Row,{id:setting.id,label:setting.label,description:setting.description')]){const g=graph({settings:source});assert.equal(H.settingsDropdownDisplays(names.settings,g.metas.get(names.settings),g.exportsByFile,{Medium:'中'},g.metas).replacements.length,0);}
+});
 test('server capability card and Fusion descriptions translate at output while names and model captures remain unchanged',()=>{
   const result=capabilities();assert.equal(result.menus,1);assert.equal(result.fusionDescriptions,1);assert.equal(result.cardDescriptions,1);
   const models=require('../src/model-translations'),unknown={type:'user-element',props:{children:'Untouched'}};
@@ -152,6 +180,14 @@ test('unproven capability consumers, chat cards, aliases, mutations and changed 
   ])assert.equal(capabilities({menu:source}).cardDescriptions,0);
   assert.equal(capabilities({entry:entry.replace("Symbol.for('react.transitional.element')","'react.transitional.element'")}).replacements.length,0);
 });
+test('capability toggle and group captions translate without changing model names or handlers',()=>{
+  const result=capabilities();assert.equal(result.toggleLabels,1);assert.equal(result.sectionHeaders,1);let changed;
+  const items=[{id:'normal',label:'Normal',section:{id:'preview',label:'Previews'},card:{title:'Previews',description:normal,toggles:[{label:'Fast mode',checked:false,disabled:true,onCheckedChange:value=>{changed=value}}]}}],before=JSON.stringify(items),tree=children(renderMenu(apply(menu,result.replacements),items));
+  assert.ok(tree.includes('快速模式'));assert.ok(tree.includes('预览版'));assert.ok(tree.includes('Previews'));assert.equal(tree.find(node=>node?.type==='button').props.disabled,true);tree.find(node=>node?.type==='button').props.onClick();assert.equal(changed,true);assert.equal(JSON.stringify(items),before);
+  assert.equal(capabilities({menu:menu.replace('children:label','children:useMessage(label)')}).toggleLabels,0);
+  assert.equal(capabilities({menu:menu.replace('item.card.toggles?.map','messages.map')}).toggleLabels,0);
+  assert.equal(capabilities({menu:menu.replace('const section=item.section','const section=item.userMessage')}).sectionHeaders,0);
+});
 test('prepare covers the complete host target set and rejects broken contracts',t=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'devin-zh-host-test-'));
   t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
@@ -161,7 +197,7 @@ test('prepare covers the complete host target set and rejects broken contracts',
   fs.writeFileSync(path.join(root,H.HOST,'index.js'),"import {j} from './assets/resources-random.js';export {j};");
   const discovery=H.discover(root);assert.equal(discovery.targets.length,4);assert.equal(discovery.proofFiles.length,8);
   const dictionary={human:{},str:()=>undefined,resolveI18n:(key,en)=>({'Known description':'已知说明','Hello {{name}}':'你好'}[en])};
-  const result=H.prepare({root,discovery,dictionary});assert.equal(result.changes.length,4);assert.equal(result.compatibility.settingsRows,1);assert.equal(result.compatibility.workspaceDisplays,2);assert.equal(result.compatibility.fusionDescriptions,1);assert.equal(result.compatibility.cardDescriptions,1);
+  const result=H.prepare({root,discovery,dictionary});assert.equal(result.changes.length,4);assert.equal(result.compatibility.settingsRows,1);assert.equal(result.compatibility.workspaceDisplays,2);assert.equal(result.compatibility.fusionDescriptions,1);assert.equal(result.compatibility.cardDescriptions,1);assert.equal(result.compatibility.settingOptions,2);assert.equal(result.compatibility.toggleLabels,1);assert.equal(result.compatibility.sectionHeaders,1);
   const resource=result.changes.find(x=>x.relative===names.entry);assert.equal(resource.stats.hostI18n,1);assert.equal(resource.stats.rejected,1);assert.equal(resource.rejections[0].problem,'placeholder-or-markup');
   assert.ok(resource.source.includes('Hello {{name}}'));assert.ok(resource.source.includes('https://example.com/path'));
   assert.throws(()=>H.prepare({root,discovery:{...discovery,targets:discovery.targets.slice(1)},dictionary}),/target\/proof/);

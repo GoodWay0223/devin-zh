@@ -87,7 +87,8 @@
     "Anthropic's Fable 5.1 model. Preview available until Sept 22": "Anthropic 的 Fable 5.1 模型。预览可用至 9 月 22 日",
     "Anthropic's latest model. Preview available until Oct 6": "Anthropic 最新的模型。预览可用至 10 月 6 日",
     "OpenAI's model. Preview available until Oct 6": "OpenAI 模型。预览可用至 10 月 6 日",
-    "OpenAI's latest model. Preview available until Oct 13": "OpenAI 最新的模型。预览可用至 10 月 13 日"
+    "OpenAI's latest model. Preview available until Oct 13": "OpenAI 最新的模型。预览可用至 10 月 13 日",
+    "Multi-model harness that pairs frontier models like Opus 5.5, Fable 5.1, and GPT-6 Astra with a cost efficient sidekick for up to 30% cost savings": "采用多模型协作机制，将 Opus 5.5、Fable 5.1 和 GPT-6 Astra 等前沿模型与高性价比辅助模型搭配，最多可节省 30% 费用"
   },
   "rules": [
     {

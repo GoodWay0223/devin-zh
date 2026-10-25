@@ -8,7 +8,7 @@
 
 窗口和油猴脚本使用同款 Devin 标志 + 蓝色“中”字角标。作者署名在窗口左下角，GitHub 链接在右下角。自己创建工具快捷方式时，可在【属性 → 更改图标】选择包内 `assets/devin-zh.ico`。
 
-面向常规 Windows 10/11，需要系统的 PowerShell、Windows Script Host 与 .NET Framework 可用；系统限制脚本执行时入口可能打不开。首次需要 Node.js 和网络，Devin 版本还需通过兼容检查。本次工具 1.0.18 面向 Devin 3.11.216 / VS Code 1.126.0，已完成原版核验、新界面离线准备与回归检查；当前等待完全退出客户端后应用及验收，尚未正式发布。此前 1.0.17 已在 3.10.67 完成实机检查，另有 3.10.48 的记录。不能保证每一种 Windows 环境和 Devin 构建都可直接应用。
+面向常规 Windows 10/11，需要系统的 PowerShell、Windows Script Host 与 .NET Framework 可用；系统限制脚本执行时入口可能打不开。首次需要 Node.js 和网络，Devin 版本还需通过兼容检查。工具 1.0.18 已在 Devin 3.11.216 / VS Code 1.126.0 完成安装、真实启动及代表性菜单、设置和模式说明验收。此前 1.0.17 已在 3.10.67 完成实机检查，另有 3.10.48 的记录。不能保证每一种 Windows 环境和 Devin 构建都可直接应用。
 
 1. 首次需要 [Node.js 22.13+（推荐 24 LTS）](https://nodejs.org/zh-cn/download)，安装一次即可。未安装时，窗口会提供官方下载入口。Windows 窗口使用系统自带 .NET Framework，首次自动在工具缓存中生成，不安装额外 GUI 框架。
 2. 工具自动查找 Devin。找不到时点击【选择程序】，选中 `Devin.exe` 即可；不用输入路径。

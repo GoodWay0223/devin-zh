@@ -146,7 +146,8 @@ function prepare({root,originals,dictionary=C.loadDict(),discovery=discover(root
   const metas=new Map(discovery.proofFiles.map(relative=>[relative,index(read(root,relative,originals))]));
   const exportsByFile=new Map([...metas].map(([relative])=>[relative,runtimeExports(relative,metas)]));
   if(![...exportsByFile.values()].some(exports=>exports.size))throw new Error('Could not prove the host JSX runtime');
-  const tables=C.readJson(C.dataFile('settings-display.zh.json')),changes=[],namespaces=new Set();let settingsRows=0,workspaceDisplays=0,resourceBlocks=0,capabilityMenus=0,fusionDescriptions=0,cardDescriptions=0;
+  const tables=C.readJson(C.dataFile('settings-display.zh.json')),changes=[],namespaces=new Set();let settingsRows=0,workspaceDisplays=0,resourceBlocks=0,capabilityMenus=0,fusionDescriptions=0,cardDescriptions=0,settingOptions=0,toggleLabels=0,sectionHeaders=0;
+  const optionTable=Object.fromEntries(['Low','Medium','High','Off'].map(en=>[en,dictionary.str(en)??tables[en]]));
   for(const relative of discovery.targets){const meta=metas.get(relative),replacements=[],rejections=[];let translated=0;
     for(const block of resources(meta)){resourceBlocks++;namespaces.add(block.namespace);const [value,count]=C.mapLeaves(block.value,(key,en)=>{const english=C.isEnglish(en),reviewed=!english&&Object.hasOwn(dictionary.human||{},en)&&typeof dictionary.human[en]==='string';if(!english&&!reviewed)return;const zh=reviewed?dictionary.human[en]:dictionary.resolveI18n(key,en);if(zh===undefined||zh===en)return;const problem=translationProblem(en,zh);if(problem){rejections.push({kind:'host-i18n',key,problem});return;}return zh;});if(count){replacements.push({start:block.node.start,end:block.node.end,value:JSON.stringify(value)});translated+=count;}}
     let source=applyReplacements(meta.source,replacements);
@@ -159,16 +160,19 @@ function prepare({root,originals,dictionary=C.loadDict(),discovery=discover(root
     const workspace=workspaceDescriptions(relative,index(source),exportsByFile,tables,metas);
     workspaceDisplays+=workspace.replacements.length;
     source=applyReplacements(source,workspace.replacements);
-    const capability=capabilityDescriptions(relative,index(source),exportsByFile,metas);
-    capabilityMenus+=capability.menus;fusionDescriptions+=capability.fusionDescriptions;cardDescriptions+=capability.cardDescriptions;
+    const dropdown=settingsDropdownDisplays(relative,index(source),exportsByFile,optionTable,metas);
+    settingOptions+=dropdown.replacements.length;source=applyReplacements(source,[...dropdown.captures,...dropdown.replacements]);
+    const capability=capabilityDescriptions(relative,index(source),exportsByFile,metas,dictionary);
+    capabilityMenus+=capability.menus;fusionDescriptions+=capability.fusionDescriptions;cardDescriptions+=capability.cardDescriptions;toggleLabels+=capability.toggleLabels;sectionHeaders+=capability.sectionHeaders;
     source=applyReplacements(source,capability.replacements);
     const syntax=C.checkSyntax(source);if(syntax)throw new Error('Invalid generated host asset: '+syntax);
-    changes.push({relative,source,stats:{...patched.stats,rejected:patched.stats.rejected+rejections.length,hostI18n:translated,workspaceDisplays:workspace.replacements.length,capabilityDisplays:capability.replacements.length},rejections:[...rejections,...patched.rejections],compatibility:{compatible:true,host:true,settingsRows:originalAnalysis.stats.settingsRows,workspaceDisplays:workspace.replacements.length,capabilityMenus:capability.menus,fusionDescriptions:capability.fusionDescriptions,cardDescriptions:capability.cardDescriptions,runtimeProven:true}});
+    changes.push({relative,source,stats:{...patched.stats,rejected:patched.stats.rejected+rejections.length,hostI18n:translated,workspaceDisplays:workspace.replacements.length,settingOptions:dropdown.replacements.length,capabilityDisplays:capability.replacements.length},rejections:[...rejections,...patched.rejections],compatibility:{compatible:true,host:true,settingsRows:originalAnalysis.stats.settingsRows,workspaceDisplays:workspace.replacements.length,settingOptions:dropdown.replacements.length,capabilityMenus:capability.menus,fusionDescriptions:capability.fusionDescriptions,cardDescriptions:capability.cardDescriptions,toggleLabels:capability.toggleLabels,sectionHeaders:capability.sectionHeaders,runtimeProven:true}});
   }
   if(!namespaces.has('translation')||!namespaces.has('review')||resourceBlocks!==2)throw new Error('Host English resources are not recognized');
   if(settingsRows!==1||workspaceDisplays!==2)throw new Error('Host settings display contracts are not recognized');
   if(capabilityMenus!==1||fusionDescriptions!==1||cardDescriptions!==1)throw new Error('Host capability description contracts are not recognized');
-  return {changes,compatibility:{compatible:true,host:true,namespaces:[...namespaces],settingsRows,workspaceDisplays,capabilityMenus,fusionDescriptions,cardDescriptions},stats:{files:changes.length,resourceBlocks,settingsRows,workspaceDisplays,capabilityMenus,fusionDescriptions,cardDescriptions}};
+  if(settingOptions!==2||toggleLabels!==1||sectionHeaders!==1)throw new Error('Host settings option or capability label contracts are not recognized');
+  return {changes,compatibility:{compatible:true,host:true,namespaces:[...namespaces],settingsRows,workspaceDisplays,settingOptions,capabilityMenus,fusionDescriptions,cardDescriptions,toggleLabels,sectionHeaders},stats:{files:changes.length,resourceBlocks,settingsRows,workspaceDisplays,settingOptions,capabilityMenus,fusionDescriptions,cardDescriptions,toggleLabels,sectionHeaders}};
 }
 // The workspace bridge returns data also used for settings search and updates.
 // Translate its description only at the proven row's pure formatting call.
@@ -215,10 +219,53 @@ function workspaceDescriptions(relative,meta,exportsByFile,tables,metas) {
   }
   return {replacements};
 }
+// Translate the two display projections of native setting choices. The source
+// options (including values and unavailable state) remain byte-for-byte intact.
+function settingsDropdownDisplays(relative,meta,exportsByFile,table,metas) {
+  const runtime=runtimeBindings(relative,meta,exportsByFile),rows=new Set(),replacements=[],captures=[],identifiers=new Set();
+  walk(meta.ast,node=>{if(node.type==='Identifier')identifiers.add(node.name);});
+  const stable=b=>b&&!b.ambiguous&&!b.memberWrite&&!b.writes.length;
+  const isRender=node=>{const callee=node?.callee?.type==='SequenceExpression'?node.callee.expressions.at(-1):node?.callee;return node?.type==='CallExpression'&&callee?.type==='MemberExpression'&&!callee.computed&&['jsx','jsxs'].includes(key(callee.property))&&runtime.get(meta.nodeBinding(callee.object)?.id.start)==='jsx';};
+  const member=(node,binding,name)=>node?.type==='MemberExpression'&&!node.computed&&key(node.property)===name&&stable(binding)&&meta.nodeBinding(node.object)===binding;
+  const ownerOf=node=>{let owner=meta.parents.get(node);while(owner&&!FN.has(owner.type))owner=meta.parents.get(owner);return owner;};
+  for(const imported of meta.imports){const dependency=safeRelative(relative,imported.import.source),other=metas.get(dependency);if(!other)continue;const fn=other.value(other.root.bindings.get(other.exports.get(imported.import.name)));if(!FN.has(fn?.type)||fn.params[0]?.type!=='ObjectPattern'||!['label','description','displayLabel','displayDescription','labelId','children'].every(name=>fn.params[0].properties.some(p=>key(p.key)===name)))continue;const a=analyzeSource(other.source,{acorn:C.parser(),provenRuntimeBindings:runtimeBindings(dependency,other,exportsByFile)});if(a.stats.settingsRows&&a.display.filter(n=>n.kind==='settings'&&n.index>fn.start&&n.index<fn.end).length>=2)rows.add(imported);}
+  const memoBody=call=>{const callee=call?.callee?.type==='SequenceExpression'?call.callee.expressions.at(-1):call?.callee;return call?.type==='CallExpression'&&callee?.type==='MemberExpression'&&!callee.computed&&key(callee.property)==='useMemo'&&call.arguments.length===2&&FN.has(call.arguments[0]?.type)&&call.arguments[0].params.length===0?call.arguments[0].body:undefined;};
+  function fromOptions(binding,setting){
+    const body=memoBody(meta.value(binding));if(!body)return false;let found=false;
+    walk(body,node=>{if(node.type!=='ForOfStatement'||!member(node.right,setting,'options')||node.left.type!=='VariableDeclaration'||node.left.declarations.length!==1)return;const option=meta.nodeBinding(node.left.declarations[0].id);walk(node.body,value=>{if(value.type!=='ObjectExpression')return;const call=meta.parents.get(value);if(call?.type==='CallExpression'&&call.callee.type==='MemberExpression'&&key(call.callee.property)==='push'&&member(property(value,'label'),option,'label')&&meta.nodeBinding(property(value,'original'))===option&&property(value,'value'))found=true;});});return found;
+  }
+  for(const row of meta.calls){
+    if(!isRender(row)||!rows.has(meta.nodeBinding(row.arguments[0])))continue;
+    const owner=ownerOf(row),pattern=owner?.params[0],settingNode=pattern?.type==='ObjectPattern'?pattern.properties.find(p=>key(p.key)==='setting')?.value:null,setting=meta.nodeBinding(settingNode),props=row.arguments[1],dropdown=property(props,'children');
+    if(owner?.body?.type!=='BlockStatement'||settingNode?.type!=='Identifier'||!stable(setting)||!member(property(props,'id'),setting,'id')||!member(property(props,'label'),setting,'label')||!isRender(dropdown)||!['value','onValueChange','items','children'].every(name=>property(dropdown.arguments[1],name)))continue;
+    const projected=property(dropdown.arguments[1],'items'),projection=meta.nodeBinding(projected),map=memoBody(meta.value(projection));
+    if(!stable(projection)||map?.type!=='CallExpression'||map.callee.type!=='MemberExpression'||map.callee.computed||key(map.callee.property)!=='map'||map.arguments.length!==1)continue;
+    let isolated=true;walk(owner.body,node=>{if(node.type==='Identifier'&&meta.nodeBinding(node)===projection&&node!==projection.id&&node!==projected)isolated=false;});if(!isolated)continue;
+    const source=meta.nodeBinding(map.callee.object),fn=map.arguments[0],patternMap=fn?.params?.[0],out=fn?.body;
+    if(!stable(source)||!fromOptions(source,setting)||!FN.has(fn?.type)||fn.params.length!==1||patternMap?.type!=='ObjectPattern'||patternMap.properties.length!==2||out?.type!=='ObjectExpression'||out.properties.length!==2)continue;
+    const input=new Map(patternMap.properties.map(p=>[key(p.key),meta.nodeBinding(p.value)]));
+    if(!['value','label'].every(name=>stable(input.get(name))&&meta.nodeBinding(property(out,name))===input.get(name)))continue;
+    const labelProperty=out.properties.find(p=>key(p.key)==='label');const positions=[];
+    for(const candidate of meta.calls){if(!isRender(candidate)||candidate.start<dropdown.start||candidate.end>dropdown.end)continue;const shown=property(candidate.arguments[1],'children');if(shown?.type!=='MemberExpression')continue;
+      const callback=ownerOf(candidate),call=meta.parents.get(callback),option=callback?.params?.[0];
+      if(callback?.type==='ArrowFunctionExpression'&&callback.params.length===1&&member(shown,meta.nodeBinding(option),'label')&&call?.type==='CallExpression'&&call.callee.type==='MemberExpression'&&key(call.callee.property)==='map'&&meta.nodeBinding(call.callee.object)===source&&call.arguments[0]===callback)positions.push(shown);
+    }
+    if(positions.length!==1)continue;
+    // Minifiers reuse the setting parameter name inside both map callbacks.
+    // Capture the proven outer object under an unused name before entering them.
+    let suffix=0,capture;do{capture='__devinZhSetting'+suffix++;}while(identifiers.has(capture));identifiers.add(capture);
+    let insertion=owner.body.start+1;for(const statement of owner.body.body){if(!statement.directive)break;insertion=statement.end;}
+    captures.push({start:insertion,end:insertion,value:`;const ${capture}=${settingNode.name};`});
+    const guard=`["supercompleteAggression","completionMode"].includes(${capture}.id)`;
+    const add=(node,prefix='')=>{const expression=meta.source.slice(node.start,node.end);replacements.push({start:node.start,end:node.end,value:prefix+`(${guard}?${wrapper(expression,table)}:${expression})`});};
+    add(labelProperty.value,labelProperty.shorthand?'label:':'');add(positions[0]);
+  }
+  return {replacements,captures};
+}
 // The host's capability cards now receive server-provided card_description data.
 // Prove the imported picker, its local item/card render chain and its two text
 // outlets; never rewrite model records, titles, selection values or callbacks.
-function capabilityDescriptions(relative,meta,exportsByFile,metas) {
+function capabilityDescriptions(relative,meta,exportsByFile,metas,dictionary=C.loadDict()) {
   const stable=b=>b&&!b.ambiguous&&!b.memberWrite&&!b.writes.length;
   const params=fn=>{
     if(!FN.has(fn?.type)||fn.params.length!==1||fn.params[0].type!=='ObjectPattern')return new Map();
@@ -264,9 +311,19 @@ function capabilityDescriptions(relative,meta,exportsByFile,metas) {
       roots.add(root);
     }
   }
-  const isRender=renderer(relative,meta),replacements=[],positions=new Set(),models=require('./model-translations');let fusionDescriptions=0,cardDescriptions=0;
+  const isRender=renderer(relative,meta),replacements=[],positions=new Set(),models=require('./model-translations');let fusionDescriptions=0,cardDescriptions=0,toggleLabels=0,sectionHeaders=0;
   const exclusiveRenderer=(binding,owner)=>{let exclusive=!!binding;walk(meta.ast,node=>{if(node.type!=='Identifier'||node===binding?.id||meta.nodeBinding(node)!==binding)return;const parent=meta.parents.get(node);if(!isRender(parent)||parent.arguments[0]!==node||!owns(owner,parent))exclusive=false;});return exclusive;};
-  const add=node=>{if(positions.has(node.start))return false;positions.add(node.start);replacements.push({start:node.start,end:node.end,value:wrapper(meta.source.slice(node.start,node.end),models.descriptions,false,models.rules)});return true;};
+  const add=(node,table=models.descriptions,rules=models.rules)=>{if(positions.has(node.start))return false;positions.add(node.start);replacements.push({start:node.start,end:node.end,value:wrapper(meta.source.slice(node.start,node.end),table,false,rules)});return true;};
+  function sectionGroupFactory(fn,source){
+    if(!FN.has(fn?.type)||fn.params.length!==1||fn.params[0].type!=='Identifier')return false;
+    const input=meta.nodeBinding(fn.params[0]);let matches=false;
+    walk(fn.body,node=>{if(node.type!=='ForOfStatement'||meta.nodeBinding(node.right)!==input||node.left.type!=='VariableDeclaration'||node.left.declarations.length!==1)return;
+      const item=meta.nodeBinding(node.left.declarations[0].id);walk(node.body,value=>{if(value.type!=='ObjectExpression'||value.properties.length!==2)return;
+        const spread=value.properties.find(p=>p.type==='SpreadElement'),members=property(value,'items'),section=meta.value(meta.nodeBinding(spread?.argument));
+        if(field(meta,section,item,'section')&&members?.type==='ArrayExpression'&&members.elements.length===1&&meta.nodeBinding(members.elements[0])===item)matches=true;
+      });
+    });return matches&&source?.type==='Identifier';
+  }
   for(const root of roots){
     const rootParams=params(root),labels=meta.nodeBinding(rootParams.get('labels')),items=new Set();
     for(const call of meta.calls){if(!owns(root,call)||!isRender(call))continue;
@@ -275,10 +332,20 @@ function capabilityDescriptions(relative,meta,exportsByFile,metas) {
         const [defaults,override]=merge.properties.map(p=>p.argument),data=meta.value(meta.nodeBinding(defaults));
         if(stable(labels)&&meta.nodeBinding(override)===labels&&['fusionDescription','capability','speed'].every(name=>text(property(data,name))!==undefined)&&add(shown))fusionDescriptions++;
       }
+      if(isRender(call,'span')&&shown?.type==='MemberExpression'&&!shown.computed&&key(shown.property)==='label'){
+        const callback=ownerOf(meta,call),map=meta.parents.get(callback),section=callback?.params[0],list=map?.callee?.object,group=meta.value(meta.nodeBinding(list));
+        if(callback?.type==='ArrowFunctionExpression'&&callback.params.length===1&&section?.type==='Identifier'&&field(meta,shown,meta.nodeBinding(section),'label')&&map?.type==='CallExpression'&&key(map.callee.property)==='map'&&map.arguments[0]===callback&&group?.type==='CallExpression'&&group.arguments.length===1&&meta.nodeBinding(group.arguments[0])===meta.nodeBinding(rootParams.get('items'))&&sectionGroupFactory(functionOf(meta,group.callee),group.arguments[0])&&add(shown,{Previews:dictionary.str('Previews')},[]))sectionHeaders++;
+      }
       const component=functionOf(meta,call.arguments[0]);if(has(component,['item','selected','speed','checkSide','cardsEnabled','onSelect'])&&exclusiveRenderer(meta.nodeBinding(call.arguments[0]),root))items.add(component);
     }
     for(const item of items){const itemBinding=meta.nodeBinding(params(item).get('item'));if(!stable(itemBinding))continue;
       for(const call of meta.calls){if(!owns(item,call)||!isRender(call))continue;const cardFn=functionOf(meta,call.arguments[0]),props=call.arguments[1];
+        if(has(cardFn,['label','checked','disabled','disabledTooltip','onToggle'])){
+          const callback=ownerOf(meta,call),map=meta.parents.get(callback),option=callback?.params[0],toggles=map?.callee?.object,card=toggles?.object,optionBinding=meta.nodeBinding(option),label=property(props,'label');
+          const labelBinding=meta.nodeBinding(params(cardFn).get('label')),labelReads=[];walk(cardFn.body,node=>{if(node.type==='Identifier'&&meta.nodeBinding(node)===labelBinding)labelReads.push(node);});
+          const displayOnly=stable(labelBinding)&&labelReads.length===1&&meta.parents.get(labelReads[0])?.type==='Property'&&key(meta.parents.get(labelReads[0]).key)==='children'&&meta.calls.some(output=>owns(cardFn,output)&&isRender(output,'span')&&property(output.arguments[1],'children')===labelReads[0]);
+          if(displayOnly&&callback?.type==='ArrowFunctionExpression'&&callback.params.length===1&&map?.type==='CallExpression'&&map.arguments[0]===callback&&key(map.callee.property)==='map'&&toggles?.type==='MemberExpression'&&!toggles.computed&&key(toggles.property)==='toggles'&&field(meta,card,itemBinding,'card')&&field(meta,label,optionBinding,'label')&&field(meta,property(props,'checked'),optionBinding,'checked')&&field(meta,property(props,'onToggle'),optionBinding,'onCheckedChange')&&add(label,models.descriptions,[]))toggleLabels++;
+        }
         if(!has(cardFn,['card','fallbackTitle'])||params(cardFn).size!==2||!field(meta,property(props,'card'),itemBinding,'card')||!field(meta,property(props,'fallbackTitle'),itemBinding,'label'))continue;
         const cardBinding=meta.nodeBinding(params(cardFn).get('card')),fallback=meta.nodeBinding(params(cardFn).get('fallbackTitle'));
         if(!stable(cardBinding)||!stable(fallback))continue;
@@ -292,6 +359,6 @@ function capabilityDescriptions(relative,meta,exportsByFile,metas) {
       }
     }
   }
-  return {replacements,menus:roots.size,fusionDescriptions,cardDescriptions};
+  return {replacements,menus:roots.size,fusionDescriptions,cardDescriptions,toggleLabels,sectionHeaders};
 }
-module.exports={HOST,discover,prepare,index,resources,safeRelative,commonJsWrapper,runtimeExports,runtimeBindings,workspaceDescriptions,capabilityDescriptions};
+module.exports={HOST,discover,prepare,index,resources,safeRelative,commonJsWrapper,runtimeExports,runtimeBindings,workspaceDescriptions,settingsDropdownDisplays,capabilityDescriptions};
