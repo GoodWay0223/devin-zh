@@ -3,8 +3,9 @@
 const fs=require('node:fs'), path=require('node:path'), cp=require('node:child_process');
 const readline=require('node:readline'), crypto=require('node:crypto');
 const ROOT=path.resolve(__dirname,'..');
+const toolUpdate=require('./tool-update');
 const launcher=require('./launcher');
-const MUTATIONS=new Set(['apply','restore','recover']);
+const MUTATIONS=new Set(['apply','restore','recover','update-tool']);
 
 function createRunner({projectDir=ROOT,emit,signal,log}={}) {
   return (program,args,{env=process.env,structured=false}={})=>new Promise((resolve,reject)=>{
@@ -36,10 +37,17 @@ function appInfo(root) {
   const product=JSON.parse(fs.readFileSync(path.join(root,'product.json'),'utf8'));
   return {root,location:path.resolve(root,'..','..'),version:product.windsurfVersion || product.version};
 }
-async function operate(request,{emit,signal,log,projectDir=ROOT,discover=launcher.discover}={}) {
+async function operate(request,{emit,signal,log,projectDir=ROOT,discover=launcher.discover,fetchImpl}={}) {
   launcher.checkNode();
   const command=request.command;
-  if (!['detect','prepare','apply','restore','recover','status'].includes(command)) throw new Error('未知操作。');
+  if (!['detect','prepare','apply','restore','recover','status','check-tool-update','update-tool'].includes(command)) throw new Error('未知操作。');
+  if(command==='check-tool-update'){
+    try{const release=await toolUpdate.checkUpdate({projectDir,signal,fetchImpl});return {type:release.available?'update-available':'update-current',version:release.version,currentVersion:release.currentVersion,sourceCheckout:release.sourceCheckout,url:release.url};}
+    catch(error){log(error.message);return {type:'update-unavailable',message:'暂时无法检查更新，可稍后重试。汉化功能不受影响。'};}
+  }
+  if(command==='update-tool')return toolUpdate.updateTool({projectDir,expectedVersion:request.expectedVersion,signal,fetchImpl,
+    onProgress:event=>emit({type:'progress',message:event.message,busy:!event.totalBytes,completed:event.receivedBytes,total:event.totalBytes,unit:'bytes'})});
+  toolUpdate.recoverUpdate(projectDir);
   const root=request.root ? launcher.resolveInstallation(request.root) : null;
   if (command==='detect') {
     emit({type:'progress',message:'正在自动查找 Devin',busy:true});

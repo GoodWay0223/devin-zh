@@ -78,8 +78,11 @@ function loadDict() {
   const webReviewed = readJson(dataFile('web-reviewed.zh.json'));
   const webShortcuts = readJson(dataFile('web-shortcuts.zh.json'));
   const webSettings = readJson(dataFile('web-settings.zh.json'));
+  // Newer Desktop builds moved these reviewed setting descriptions into EN JSON.
+  // Keep existing context-specific/manual translations and model names higher priority.
+  const desktopSettings = readJson(dataFile('settings-display.zh.json'));
   const models = require('./model-translations');
-  const human = Object.assign(Object.create(null), DICTIONARY, display.nav, display.menu, webShortcuts, webReviewed, webSettings, manual, models.descriptions, models.names);
+  const human = Object.assign(Object.create(null), desktopSettings, DICTIONARY, display.nav, display.menu, webShortcuts, webReviewed, webSettings, manual, models.descriptions, models.names);
   // 软件/品牌名称不使用机翻草稿中的音译；原样保留。
   for (const name of ['Vim', 'Eclipse', 'Npm', 'npm', 'Sublime Text', 'Notepad++', 'VS Code', 'Devin', 'Windsurf']) human[name] = name;
   const smt = readJson(dataFile('strings.mt.json'));

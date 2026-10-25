@@ -81,6 +81,23 @@ test('non-EN resources, animations, emoji and bootstrap code remain byte-identic
   assert.equal(result.stats.i18n + result.stats.ui, 0);
 });
 
+test('Desktop settings migrated into EN resources reuse reviewed descriptions without changing values', () => {
+  const description = 'Connect to agents on remote machines over SSH.';
+  const unicode = 'Model settings apply to the air-gapped Devin agent — both Devin Local and the devin CLI on this machine. Changes take effect after the agent restarts.';
+  const resource = {
+    manageAccess: { accessLevel: 'Access level', add: 'Add', done: 'Done' },
+    localSettings: { remoteAgentHosts: { description }, modelSettings: { description: unicode }, mode: 'Agent' },
+  };
+  const internal = `const stored={mode:"Agent",description:${JSON.stringify(description)}};`;
+  const source = `const resource=JSON.parse(${JSON.stringify(JSON.stringify(resource))});${internal}`;
+  const result = patchSource(source);
+  const actual = C.analyze(result.source).blocks[0].obj.localSettings;
+  assert.equal(actual.remoteAgentHosts.description, '通过 SSH 连接远程计算机上的智能体。');
+  assert.equal(actual.modelSettings.description, C.readJson(C.dataFile('settings-display.zh.json'))[unicode]);
+  assert.equal(actual.mode, 'Agent');
+  assert.ok(result.source.endsWith(internal));
+});
+
 test('the original white-screen risk stays unchanged while visible Cancel text translates', () => {
   const source = moduleSource(`
     const JSX = requireModule(87345);

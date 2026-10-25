@@ -1,7 +1,7 @@
 const C = require('./core');
 const { translationProblem } = require('./validate');
-function patchSource(source, dictionary = C.loadDict(), displayDictionary = C.readJson(C.dataFile('display.zh.json')), { requireCompatibility = false } = {}) {
-  const analysis = C.analyze(source);
+function patchSource(source, dictionary = C.loadDict(), displayDictionary = C.readJson(C.dataFile('display.zh.json')), { requireCompatibility = false, analyze = C.analyze } = {}) {
+  const analysis = analyze(source);
   const compatibility = requireCompatibility ? require('./compatibility').assertWebCompatibility(analysis) : null;
   const replacements = [];
   const stats = { i18n: 0, blocks: 0, ui: 0, display: 0, rejected: 0, candidates: analysis.ui.length, resourceBlocks: analysis.blocks.filter(x => x.en).length };
@@ -67,7 +67,7 @@ function patchSource(source, dictionary = C.loadDict(), displayDictionary = C.re
   const syntax = C.checkSyntax(output);
   if (syntax) throw new Error('生成文件语法不正确: ' + syntax);
   // Independently parse the generated module and verify every resource remains valid JSON.
-  const checked = C.analyze(output);
+  const checked = analyze(output);
   if (checked.blocks.length !== analysis.blocks.length) throw new Error('汉化改变了 JSON 资源数量');
   return { source: output, stats, rejections, compatibility };
 }

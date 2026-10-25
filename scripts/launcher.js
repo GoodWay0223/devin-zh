@@ -120,7 +120,12 @@ async function main() {
   }
   console.log(`\nDevin 汉化工具 ${require('../package.json').version} · ${platform === 'win32' ? 'Windows' : 'macOS 预览版'}\n`);
   if (platform === 'darwin') console.log('macOS 仅检查和生成报告，不修改官方 .app；尚未验证签名及实际启动。\n');
-  ensureDependencies();
+  const updater=require('./tool-update'),updateAbort=new AbortController();
+  // Check in the background: opening the menu and using localization never waits for GitHub.
+  const updateCheck=updater.checkUpdate({projectDir:ROOT,signal:updateAbort.signal}).then(release=>{
+    if(release.available)console.log('\n发现汉化工具 v'+release.version+'；菜单 7 查看正式下载。\n');return release;
+  }).catch(()=>null);
+  try{ensureDependencies();}catch(error){updateAbort.abort();throw error;}
   const readline = require('node:readline/promises').createInterface({input:process.stdin,output:process.stdout});
   async function chooseRoot(force = false) {
     if (!force) console.log('正在自动查找 Devin…');
@@ -162,10 +167,22 @@ async function main() {
       console.log(`2. ${platform === 'win32' ? '完整汉化' : '准备完整报告'}：Agent + 编辑器菜单（需匹配的中文语言包）`);
       console.log('3. 检查安装和兼容性');
       if (platform === 'win32') console.log('4. 恢复当前版本原版\n5. 恢复上次中断操作');
-      console.log('6. 更换安装目录\n0. 退出');
+      console.log('6. 更换安装目录\n7. 检查汉化工具更新\n0. 退出');
       const choice = (await readline.question('输入序号，回车选择 1：')).trim() || '1';
       if (choice === '0') break;
       if (choice === '6') {root = await chooseRoot(true); continue;}
+      if(choice==='7'){
+        try{
+          await updateCheck;
+          const release=await updater.checkUpdate({projectDir:ROOT,signal:updateAbort.signal});
+          if(!release.available)console.log('当前 v'+release.currentVersion+'，已是最新版。');
+          else {
+            console.log('新版 v'+release.version+'：'+release.url);
+            console.log(release.sourceCheckout?'这是 Git 源码目录，请通过 Git 更新，或下载新的发行包。':platform==='darwin'?'请下载 macOS 预览包；macOS 暂不支持原地更新工具。保留旧 cache 与本机配置。':'双击“汉化工具-Start-Windows.vbs”，点击窗口右上角新版提示，可一键更新并保留本机数据。');
+          }
+        }catch{console.log('暂时无法检查更新，请稍后重试；汉化功能不受影响。');}
+        continue;
+      }
       const env = {...process.env,DEVIN_APP:root};
       try {
         if (platform === 'win32' && ['1','2','3','4'].includes(choice)) require('./launcher-backups').importVerifiedBackup(root, {projectDir:ROOT,
@@ -199,7 +216,7 @@ async function main() {
         } else console.log('请输入菜单中显示的序号。');
       } catch(error) {console.log('\n' + error.message + '\n安装写入若中断，请用菜单 5；未知修改不会被覆盖。');}
     }
-  } finally {readline.close();}
+  } finally {updateAbort.abort();readline.close();}
 }
 if (require.main === module) main().catch(error=>{console.error(error.message);process.exitCode=1;});
 module.exports = {checkNode,resolveInstallation,validInstallation,discover,saveLocal,runCli};

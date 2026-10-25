@@ -17,9 +17,11 @@ public class DevinZhWindow : Form {
     RadioButton full, chat;
     Button start, restore, more, pick;
     ProgressBar bar;
-    Process job;
-    string root, reportFile, logFile, action;
-    bool hasResult, outputDone, errorDone, closing, needNode;
+    Process job, updateCheck;
+    LinkLabel updateLink;
+    ToolTip tooltip;
+    string root, reportFile, logFile, action, updateVersion, updatePage, restartEntry;
+    bool hasResult, outputDone, errorDone, closing, needNode, checkingUpdate, sourceCheckout;
     readonly StringBuilder errors = new StringBuilder();
 
     sealed class InstallChoice {
@@ -65,7 +67,16 @@ public class DevinZhWindow : Form {
         Controls.Add(badge);
         LabelAt("Devin 简体中文汉化",78,22,475,42,21);
         LabelAt("v"+version,572,31,85,25);
-        LabelAt("聊天界面和编辑器菜单，自动准备，一键应用。",30,71,620,26);
+        LabelAt("聊天界面和编辑器菜单，自动准备，一键应用。",30,71,447,26);
+        updateLink=new LinkLabel {Text="检查更新",Location=new Point(477,72),Size=new Size(175,25),
+            TextAlign=ContentAlignment.MiddleRight,LinkColor=Color.FromArgb(37,99,235),Font=new Font(Font.FontFamily,9),LinkBehavior=LinkBehavior.HoverUnderline};
+        Controls.Add(updateLink);
+        updateLink.LinkClicked+=(s,e)=>{
+            if(job!=null||checkingUpdate)return;
+            if(updateVersion==null){CheckToolUpdate();return;}
+            if(sourceCheckout){MessageBox.Show(this,"这是 Git 源码目录，请通过 Git 更新；也可下载新版 Windows 发行包。当前源码不会被覆盖。","更新汉化工具",MessageBoxButtons.OK,MessageBoxIcon.Information);Process.Start(new ProcessStartInfo {FileName=updatePage,UseShellExecute=true});return;}
+            ResetPlan();var request=Request("update-tool");request["expectedVersion"]=updateVersion;StartJob(request);
+        };
         installTitle=LabelAt("正在查找 Devin…",30,114,620,27,11,true);
         locations=new ComboBox {Location=new Point(30,148),Size=new Size(531,30),DropDownStyle=ComboBoxStyle.DropDownList};
         Controls.Add(locations); pick=ButtonAt("选择程序",573,146,79,32);
@@ -99,8 +110,8 @@ public class DevinZhWindow : Form {
         projectLink.LinkClicked+=(s,e)=>openRepository();
         projectLink.MouseClick+=(s,e)=>{if(e.Button==MouseButtons.Left && e.X<26)openRepository();};
         Controls.Add(projectLink);
-        var tooltip=new ToolTip();tooltip.SetToolTip(projectLink,repository);
-        FormClosed+=(s,e)=>{badge.Image.Dispose();projectLink.Image.Dispose();Icon.Dispose();tooltip.Dispose();};
+        tooltip=new ToolTip();tooltip.SetToolTip(projectLink,repository);tooltip.SetToolTip(updateLink,"自动检查正式发布；连接失败不影响汉化。");
+        FormClosed+=(s,e)=>{try{if(updateCheck!=null&&!updateCheck.HasExited)updateCheck.Kill();}catch{}badge.Image.Dispose();projectLink.Image.Dispose();Icon.Dispose();tooltip.Dispose();};
         AcceptButton=start;
         start.Click+=(s,e)=>{
             if (needNode) {Process.Start("https://nodejs.org/zh-cn/download");return;}
@@ -129,11 +140,11 @@ public class DevinZhWindow : Form {
         FormClosing+=(s,e)=>{
             if(job==null)return;
             e.Cancel=true;
-            if(action=="apply"||action=="restore"||action=="recover") {detail.Text="正在写入或恢复安装文件，请等待完成后再关闭。";return;}
+            if(action=="apply"||action=="restore"||action=="recover"||action=="update-tool") {detail.Text="正在更新或恢复文件，请等待完成后再关闭。";return;}
             closing=true; stage.Text="正在取消准备…";
             try {job.StandardInput.WriteLine("{\"command\":\"cancel\"}");}catch{}
         };
-        Shown+=(s,e)=>StartJob(Request("detect"));
+        Shown+=(s,e)=>{StartJob(Request("detect"));CheckToolUpdate();};
         EnableControls(false);
         ResumeLayout(false);
     }
@@ -141,6 +152,7 @@ public class DevinZhWindow : Form {
     void EnableControls(bool enabled){
         start.Enabled=enabled && root!=null; restore.Enabled=enabled && root!=null;
         full.Enabled=chat.Enabled=pick.Enabled=locations.Enabled=more.Enabled=enabled;
+        updateLink.Enabled=enabled && !checkingUpdate && !needNode;
     }
     string FindNode(){
         foreach(var directory in (Environment.GetEnvironmentVariable("PATH")??"").Split(Path.PathSeparator)) {
@@ -150,6 +162,40 @@ public class DevinZhWindow : Form {
         return File.Exists(standard)?standard:null;
     }
     void Post(Action callback){if(IsDisposed)return;try{BeginInvoke(callback);}catch(InvalidOperationException){}}
+    void CheckToolUpdate(){
+        if(checkingUpdate)return;var node=FindNode();if(node==null)return;
+        checkingUpdate=true;updateLink.Text="正在检查更新…";updateLink.Enabled=false;
+        var process=new Process {StartInfo=new ProcessStartInfo {
+            FileName=node,Arguments="\""+Path.Combine(projectDir,"scripts","gui-backend.js")+"\"",WorkingDirectory=projectDir,
+            UseShellExecute=false,CreateNoWindow=true,RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true,
+            StandardOutputEncoding=new UTF8Encoding(false),StandardErrorEncoding=new UTF8Encoding(false)}};
+        updateCheck=process;
+        System.Threading.ThreadPool.QueueUserWorkItem(delegate {
+            string response="";
+            try {
+                process.Start();process.BeginErrorReadLine();process.StandardInput.WriteLine("{\"command\":\"check-tool-update\"}");process.StandardInput.Close();
+                response=process.StandardOutput.ReadToEnd();process.WaitForExit();
+            }catch{}
+            finally{process.Dispose();}
+            Post(()=>{
+                updateCheck=null;checkingUpdate=false;updateVersion=null;updateLink.Text="检查更新";
+                tooltip.SetToolTip(updateLink,"暂时无法检查更新，点击重试；汉化功能不受影响。");
+                foreach(var line in response.Split('\n')){
+                    try {
+                        var data=json.Deserialize<Dictionary<string,object>>(line);if(data==null)continue;string type=TextOf(data,"type");
+                        if(type=="update-available"){
+                            updateVersion=TextOf(data,"version");updatePage=TextOf(data,"url");sourceCheckout=Flag(data,"sourceCheckout");
+                            updateLink.Text="更新至 v"+updateVersion;
+                            tooltip.SetToolTip(updateLink,sourceCheckout?"Git 源码目录：点击查看正式发布，通过 Git 更新。":"点击下载并更新；本机配置、缓存和恢复备份保留。");
+                        }else if(type=="update-current"){
+                            updateLink.Text="已是最新版";tooltip.SetToolTip(updateLink,"当前 v"+TextOf(data,"currentVersion")+"；点击重新检查。"+(Flag(data,"sourceCheckout")?" Git 源码目录请通过 Git 更新。":""));
+                        }
+                    }catch{}
+                }
+                updateLink.Enabled=job==null&&!needNode;
+            });
+        });
+    }
     void StartJob(Dictionary<string,object> request){
         if(job!=null)return;
         var node=FindNode();
@@ -178,7 +224,13 @@ public class DevinZhWindow : Form {
     void FinishIfExited(Process process){
         if(job!=process || !outputDone || !errorDone || !process.HasExited)return;
         if(!hasResult)HandleEvent(new Dictionary<string,object>{{"type","error"},{"message",errors.Length>0?errors.ToString():"未收到操作结果，请查看详细日志。"}});
-        job=null;process.Dispose();EnableControls(true);if(closing)Close();
+        job=null;process.Dispose();EnableControls(true);
+        if(restartEntry!=null){
+            try {Process.Start(new ProcessStartInfo {FileName="wscript.exe",Arguments="\""+restartEntry+"\"",WorkingDirectory=projectDir,UseShellExecute=false,CreateNoWindow=true});Close();}
+            catch(Exception error){restartEntry=null;detail.Text="更新已完成，请重新打开汉化工具。"+error.Message;}
+            return;
+        }
+        if(closing)Close();
     }
     void HandleEvent(Dictionary<string,object> data){
         string type=TextOf(data,"type"), message=TextOf(data,"message");
@@ -196,6 +248,11 @@ public class DevinZhWindow : Form {
             return;
         }
         hasResult=true;
+        if(type=="tool-updated"){
+            ResetPlan();stage.Text="汉化工具已更新，正在重新打开…";stage.ForeColor=Color.FromArgb(21,128,61);steps.Text="完成";
+            bar.Style=ProgressBarStyle.Continuous;bar.Value=100;detail.Text="本机配置、缓存与恢复备份已保留，原来的启动入口仍可使用。";
+            restartEntry=Path.Combine(projectDir,"汉化工具-Start-Windows.vbs");return;
+        }
         if(type=="detected"){
             locations.Items.Clear();var installs=data["installations"] as IEnumerable;
             if(installs!=null)foreach(var item in installs){var info=item as Dictionary<string,object>;if(info!=null)locations.Items.Add(new InstallChoice{Root=TextOf(info,"root"),Location=TextOf(info,"location"),Version=TextOf(info,"version")});}

@@ -1,6 +1,19 @@
 $ErrorActionPreference = 'Stop'
 $guiProject = $env:DEVIN_ZH_GUI_PROJECT
 if (-not $guiProject) { throw 'Missing GUI project directory' }
+# Recover before loading or compiling any possibly newer tool sources.
+$guiUpdateLock = Join-Path $guiProject 'cache/tool-updates/active.json'
+if (Test-Path -LiteralPath $guiUpdateLock) {
+  $guiUpdateState = [IO.File]::ReadAllText($guiUpdateLock) | ConvertFrom-Json
+  if ($guiUpdateState.run -notmatch '^[a-z0-9-]+$' -or $guiUpdateState.recoveryHash -notmatch '^[a-f0-9]{64}$') { throw 'Invalid tool update recovery record; keep cache/tool-updates for recovery.' }
+  $guiRecoveryFile = Join-Path $guiProject ('cache/tool-updates/' + $guiUpdateState.run + '/recovery.js')
+  if ((Get-FileHash -LiteralPath $guiRecoveryFile -Algorithm SHA256).Hash.ToLowerInvariant() -ne $guiUpdateState.recoveryHash) { throw 'Tool update recovery file checksum mismatch.' }
+  $guiNodeCommand = Get-Command node.exe -ErrorAction SilentlyContinue
+  $guiNode = if ($guiNodeCommand) { $guiNodeCommand.Source } else { Join-Path $env:ProgramFiles 'nodejs/node.exe' }
+  if (-not (Test-Path -LiteralPath $guiNode)) { throw 'Node.js is required to recover the interrupted tool update.' }
+  & $guiNode $guiRecoveryFile --recover $guiProject
+  if ($LASTEXITCODE -ne 0) { throw 'Tool update recovery failed; keep cache/tool-updates and retry after closing other tool windows.' }
+}
 $guiSourceFile = Join-Path $guiProject 'scripts/launcher-windows.cs'
 $guiIconFile = Join-Path $guiProject 'assets/devin-zh.ico'
 $guiHasher = [Security.Cryptography.SHA256]::Create()

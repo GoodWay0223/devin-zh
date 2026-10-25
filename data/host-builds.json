@@ -1,0 +1,24 @@
+{
+  "schema": 1,
+  "builds": {
+    "d70b4713dfeaf856a4d8a35b35eac0c86e07af07": {
+      "version": "3.11.216",
+      "targets": [
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-CPcrSCJZ.js",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-D8LLM78i.js",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-iBdDCKn9.js",
+        "out/vs/workbench/devin-webapp-host/assets/entry-host-editor-mode-menu-DUnUGWLA.js"
+      ],
+      "files": {
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-CjtCYnN5.js": "9cf38b8fca416045b44967726eeed3355e53fb1b1c33a2112a52ff89c57e2f75",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-CPcrSCJZ.js": "9b85be8f3647a7acef9a35ee8d384249f6efd01b97afe5a8214204f7180b1f43",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-D8LLM78i.js": "17dbbd436f4813544ac8c6bc92063dc2145def87e7d42ec146c13f1e7d5337ce",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-iBdDCKn9.js": "2149a7e10887313c2df9d71d3c2076264c99286c05e3ba5ca207c762c5af4188",
+        "out/vs/workbench/devin-webapp-host/assets/entry-host-editor-mode-menu-DUnUGWLA.js": "33358fd3fb3bd5ec8bccd3df9866c5386c2518a07c7d29212747e643515d945c",
+        "out/vs/workbench/devin-webapp-host/assets/rolldown-runtime-C0FnF6B9.js": "e0a79ad36c6ca1ffbc796c80aa5661803a9d1bc684e29d1587f48b4ba9a82714",
+        "out/vs/workbench/devin-webapp-host/editor-mode-menu.js": "dac58f2457e7d9ba8f016817f4ce19aaf7ad7c90c2802bc4d54d8dee3b8acd8d",
+        "out/vs/workbench/devin-webapp-host/index.js": "114393d653b4653f5acc0c3aff33efcd560e0acd2354c3119bb68e26341828d3"
+      }
+    }
+  }
+}

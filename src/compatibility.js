@@ -12,9 +12,22 @@ function assertWebCompatibility(analysis) {
   if (!result.compatible) throw new Error('当前 Devin 界面结构尚未适配，未生成可安装补丁：' + result.reasons.join('；'));
   return result;
 }
-function assertPreparedCompatibility(report, identity, toolVersion) {
+function assertPreparedCompatibility(report, identity, toolVersion, baseline) {
   if (report.schema !== 3 || report.toolVersion !== toolVersion || report.identity !== identity) {
     throw new Error('准备报告与当前安装版本或汉化工具版本不一致，请重新 prepare');
+  }
+  if (baseline) {
+    const legacy = require('./install').FILES;
+    const expected = report.scope === 'all' ? baseline.files
+      : report.scope === 'web' ? [...legacy.slice(0, 2), ...(baseline.host?.targets || [])]
+      : report.scope === 'nls' ? legacy.slice(2) : null;
+    const actual = report.files?.map(entry => entry.relative);
+    if (!expected || !actual || actual.length !== expected.length || new Set(actual).size !== actual.length || expected.some(file => !actual.includes(file))) {
+      throw new Error('准备报告没有完整覆盖当前界面目标，请重新 prepare');
+    }
+    if (baseline.host && report.scope !== 'nls' && report.hostCompatibility?.compatible !== true) {
+      throw new Error('准备报告缺少独立界面兼容性验证，请重新 prepare');
+    }
   }
 }
 module.exports = { webCompatibility, assertWebCompatibility, assertPreparedCompatibility };

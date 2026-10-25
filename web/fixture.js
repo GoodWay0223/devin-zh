@@ -62,6 +62,9 @@ function buildFixture() {
 <p id="fusion-description">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</p>
 <div role="tooltip" id="normal-description">Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra</div>
 <label id="capability-fast">Fast mode<input type="checkbox" id="capability-fast-toggle"></label><label id="capability-plan">Use your ChatGPT plan<input type="checkbox" id="capability-plan-toggle" checked></label>
+<p id="chatgpt-subscription-status">You're currently using your ChatGPT subscription. </p><button id="set-default-model" aria-label="Set default">☆</button>
+<p id="chatgpt-expired">Your ChatGPT connection has expired. Reconnect to use your plan.</p>
+<div data-testid="transcript-user-message"><p id="chatgpt-user-text">You're currently using your ChatGPT subscription.</p></div>
 <div data-testid="transcript-agent-message"><span id="model-description-message">Pairs frontier intelligence with cost-efficient execution to deliver frontier-level results at lower cost</span></div>
 <p contenteditable="true" id="model-description-draft">Balances cost and intelligence with models like Opus 5.5, GPT-6.1 Sol, Fable 5.1, and GPT-6 Astra</p>
 </section><script>
@@ -120,6 +123,10 @@ check('模型名称保持英文',el('model-name').textContent==='GPT-6.1 Sol');
 check('Fusion 小字说明汉化',el('fusion-description').textContent.includes('以更低成本'));
 check('Normal 说明汉化且模型名和版本保留',el('normal-description').textContent.includes('兼顾成本与智能水平')&&['Opus 5.5','GPT-6.1 Sol','Fable 5.1','GPT-6 Astra'].every(name=>el('normal-description').textContent.includes(name)));
 check('快速模式及 ChatGPT 套餐说明汉化不改开关',el('capability-fast').textContent==='快速模式'&&el('capability-plan').textContent==='使用你的 ChatGPT 套餐'&&!el('capability-fast-toggle').checked&&el('capability-plan-toggle').checked);
+check('新版 ChatGPT 订阅提示保留首尾空白',el('chatgpt-subscription-status').textContent==='你当前正在使用自己的 ChatGPT 订阅。 ');
+check('新版默认模型操作提示汉化不改按钮',el('set-default-model').getAttribute('aria-label')==='设为默认'&&el('set-default-model').textContent==='☆');
+check('新版 ChatGPT 连接说明汉化',el('chatgpt-expired').textContent==='你的 ChatGPT 连接已过期，请重新连接以使用套餐。');
+check('与新版订阅说明同句的用户内容保持原文',el('chatgpt-user-text').textContent==="You're currently using your ChatGPT subscription.");
 check('与模式说明同句的聊天正文和草稿保护',el('model-description-message').textContent.startsWith('Pairs frontier')&&el('model-description-draft').textContent.startsWith('Balances cost'));
 check('会话区域之外固定导航继续汉化',el('fixed-new-session').textContent==='新建会话'&&el('fixed-review').textContent==='代码审查');
 check('项目和文件夹名称即使匹配词典也不汉化',el('user-project-name').textContent==='Review'&&el('user-folder-name').textContent==='Create profile');

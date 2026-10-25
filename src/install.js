@@ -37,20 +37,33 @@ function verifyNls(originals, root) {
     throw new Error('NLS 原版 JS/JSON/keys 不一致，停止操作');
   }
 }
-function loadBaseline({ root, cacheDir, create = false }) {
+function loadBaseline({ root, cacheDir, create = false, hostCatalog }) {
   const loc = location(root, cacheDir);
+  const host = require('./host-builds').hostBuild(loc.root, loc.product, hostCatalog);
+  const files = [...FILES, ...(host?.targets || [])];
   if (fs.existsSync(path.join(loc.dir, 'pending.json'))) throw new Error('上次写入被中断，请先运行 recover，未覆盖任何文件');
   const manifestFile = path.join(loc.dir, 'baseline.json');
-  let manifest, originals = new Map();
+  let manifest, previousManifest, extended = false, originals = new Map();
   if (fs.existsSync(manifestFile)) {
-    manifest = json(manifestFile);
-    for (const relative of FILES) {
+    previousManifest = read(manifestFile);
+    manifest = JSON.parse(previousManifest);
+    for (const relative of files) {
+      // Earlier tools backed up only the legacy bundles for the same build.
+      // Extend that baseline solely from catalog-verified official host bytes.
+      if (!Object.hasOwn(manifest.files, relative) && host?.targets.includes(relative)) {
+        const source = read(path.join(loc.root, relative));
+        if (sha(source) !== host.files[relative]) throw new Error('新增界面目标不是已审查官方原版，未扩展备份: ' + relative);
+        manifest.files[relative] = sha(source);
+        originals.set(relative, source);
+        extended = true;
+        continue;
+      }
       const source = read(path.join(loc.dir, 'original', relative));
       if (sha(source) !== manifest.files[relative]) throw new Error('不可变原版备份已变化: ' + relative);
       originals.set(relative, source);
     }
   } else {
-    for (const relative of FILES) {
+    for (const relative of files) {
       const source = read(path.join(loc.root, relative));
       if (source.includes('/*devin-zh:patched*/')) throw new Error('发现旧版补丁但没有已验证原版，请先恢复官方文件: ' + relative);
       originals.set(relative, source);
@@ -60,10 +73,11 @@ function loadBaseline({ root, cacheDir, create = false }) {
   for (const relative of FILES.slice(0, 2)) verifyBundle(relative, originals.get(relative), loc.product);
   for (const relative of FILES.slice(2)) if (loc.product.checksums?.[relative.replace(/^out\//, '')]) verifyBundle(relative, originals.get(relative), loc.product);
   verifyNls(originals, loc.root);
+  require('./host-builds').verifyHostFiles(loc.root, host, originals);
   const stateFile = path.join(loc.dir, 'state.json');
   const state = fs.existsSync(stateFile) ? json(stateFile) : { schema: 2, applied: {} };
   const current = new Map();
-  for (const relative of FILES) {
+  for (const relative of files) {
     const source = read(path.join(loc.root, relative));
     const hash = sha(source);
     if (hash !== manifest.files[relative] && hash !== state.applied[relative]) {
@@ -71,7 +85,7 @@ function loadBaseline({ root, cacheDir, create = false }) {
     }
     current.set(relative, source);
   }
-  if (create && !fs.existsSync(manifestFile)) {
+  if (create && (!fs.existsSync(manifestFile) || extended)) {
     for (const [relative, source] of originals) {
       const f = path.join(loc.dir, 'original', relative);
       fs.mkdirSync(path.dirname(f), { recursive: true });
@@ -79,9 +93,14 @@ function loadBaseline({ root, cacheDir, create = false }) {
         if (sha(read(f)) !== sha(source)) throw new Error('中断后的原版备份与当前版本不一致，未覆盖: ' + relative);
       } else fs.writeFileSync(f, source, { flag: 'wx' });
     }
+    if (extended) {
+      if (read(manifestFile) !== previousManifest) throw new Error('备份清单在准备期间变化，未覆盖');
+      const previousFile = path.join(loc.dir, 'baseline-before-host-targets.json');
+      if (!fs.existsSync(previousFile)) fs.writeFileSync(previousFile, previousManifest, {flag:'wx'});
+    }
     writeJson(manifestFile, manifest);
   }
-  return { ...loc, manifest, originals, current, state, stateFile };
+  return { ...loc, manifest, originals, current, state, stateFile, files, host };
 }
 function assertStopped(root, {platform = process.platform} = {}) {
   if (platform !== 'win32') throw new Error('当前仅 Windows 支持写入安装。macOS 入口为检查/准备预览版，不直接修改官方 .app；签名及实际启动尚未验证。');
@@ -103,7 +122,7 @@ function integrityStatus(baseline) {
     catch (error) { if (error.code === 'ENOENT') return { relative, status: 'missing' }; throw error; }
     const officialHash = crypto.createHash('sha256').update(source).digest('base64').replace(/=+$/, '');
     const status = officialHash === expected.replace(/=+$/, '') ? 'official'
-      : FILES.includes(relative) && sha(source) === baseline.state.applied[relative] ? 'patch' : 'unknown';
+      : baseline.files.includes(relative) && sha(source) === baseline.state.applied[relative] ? 'patch' : 'unknown';
     return { relative, status };
   });
 }
@@ -125,7 +144,8 @@ function acquireLock(dir, allowStale = false) {
 }
 function transaction(baseline, changes, { checkStopped = assertStopped, afterWrite } = {}) {
   checkStopped(baseline.root);
-  const allowed = new Set(FILES);
+  const allowed = new Set(baseline.files);
+  require('./host-builds').verifyHostFiles(baseline.root, baseline.host, baseline.originals);
   const seen = new Set();
   for (const change of changes) {
     if (!allowed.has(change.relative) || seen.has(change.relative) || typeof change.source !== 'string') throw new Error('非法或重复的安装目标');
@@ -156,6 +176,7 @@ function transaction(baseline, changes, { checkStopped = assertStopped, afterWri
     }
     checkStopped(baseline.root);
     if (location(baseline.root).identity !== baseline.identity) throw new Error('准备后应用版本已变化，未覆盖');
+    require('./host-builds').verifyHostFiles(baseline.root, baseline.host, baseline.originals);
     for (const item of staged) if (sha(read(item.target)) !== sha(baseline.current.get(item.relative))) throw new Error('准备后文件已变化，未覆盖: ' + item.relative);
     writeJson(pendingFile, { backup, previousState, files: staged.map(x => ({ relative: x.relative, before: sha(baseline.current.get(x.relative)), after: sha(x.source) })) });
     journalWritten = true;
@@ -206,6 +227,8 @@ function recover(options) {
   const loc = location(options.root, options.cacheDir);
   const pendingFile = path.join(loc.dir, 'pending.json');
   if (!fs.existsSync(loc.dir)) return { recovered: 0 };
+  const host = require('./host-builds').hostBuild(loc.root, loc.product, options.hostCatalog);
+  const allowed = new Set([...FILES, ...(host?.targets || [])]);
   (options.checkStopped || assertStopped)(loc.root);
   const releaseLock = acquireLock(loc.dir, true);
   try {
@@ -216,7 +239,7 @@ function recover(options) {
   if (!backup.startsWith(runs)) throw new Error('恢复日志的备份路径不合法');
   const saved = [];
   for (const file of pending.files) {
-    if (!FILES.includes(file.relative)) throw new Error('恢复日志目标不合法');
+    if (!allowed.has(file.relative)) throw new Error('恢复日志目标不合法');
     const source = read(path.join(backup, file.relative));
     if (sha(source) !== file.before) throw new Error('恢复日志备份已改变');
     const currentHash = sha(read(path.join(loc.root, file.relative)));

@@ -21,7 +21,9 @@ test('browser userscript shares reviewed Desktop/navigation translations and pre
     assert.ok(value, 'Shared icon must be embedded in userscript metadata');
     assert.deepEqual(Buffer.from(value[1],'base64'),fs.readFileSync(path.join(__dirname,'../assets/devin-zh-'+size+'.png')));
   }
-  assert.match(built.source,/\/\/ @downloadURL\s+none/);
+  for (const tag of ['downloadURL','updateURL']) {
+    assert.ok(built.source.includes('// @'+tag+'  '+(tag==='updateURL'?'  ':'')+'https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js'));
+  }
   assert.doesNotMatch(built.source,/\/\/ @match\s+https:\/\/\*\./);
   assert.doesNotMatch(built.source,/GM_xmlhttpRequest|fetch\(|innerHTML\s*=/);
   assert.doesNotThrow(()=>new vm.Script(built.source));

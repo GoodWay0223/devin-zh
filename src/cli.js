@@ -17,24 +17,38 @@ function checkInstallation(baseline) {
   const unknown = I.integrityStatus(baseline).filter(x => ['missing', 'unknown'].includes(x.status));
   if (unknown.length) throw new Error('安装存在未知修改或缺失，未生成或应用补丁：' + unknown.map(x => x.relative).join('；'));
 }
+function prepareHost(baseline, dictionary) {
+  return require('./host-assets').prepare({root:baseline.root, originals:baseline.originals, dictionary,
+    discovery:baseline.host ? {targets:baseline.host.targets,proofFiles:Object.keys(baseline.host.files)} : null});
+}
 function prepare() {
   const machineOutput = process.argv.includes('--json') || progressOutput;
   const scope = option('scope') || 'all';
   if (!['all', 'web', 'nls'].includes(scope)) throw new Error('--scope 必须为 all/web/nls');
-  const total = scope === 'all' ? 5 : scope === 'web' ? 4 : 3;
+  let total = scope === 'all' ? 5 : scope === 'web' ? 4 : 3;
   let completed = 0;
   progress('检查原版并保存恢复备份',completed,total);
   const baseline = I.loadBaseline({ root: C.ROOT, create: true });
+  if (baseline.host && scope !== 'nls') total++;
   checkInstallation(baseline);
   progress('原版检查和备份完成',++completed,total,false);
   const D = C.loadDict();
   const changes = [];
+  let hostCompatibility;
   if (scope !== 'nls') for (const relative of I.FILES.slice(0, 2)) {
     progress(relative === I.FILES[0] ? '正在汉化聊天界面' : '正在汉化会话和设置界面',completed,total);
     const result = patchSource(baseline.originals.get(relative), D, undefined, { requireCompatibility: true });
     changes.push({ relative, ...result });
     progress('界面补丁已生成',++completed,total,false);
     if (!machineOutput) console.log(`${relative}: i18n ${result.stats.i18n}，React 文本 ${result.stats.ui}，动态导航/菜单 ${result.stats.display}，拒绝 ${result.stats.rejected}`);
+  }
+  if (scope !== 'nls' && baseline.host) {
+    progress('正在汉化新版独立界面和设置',completed,total);
+    const result = prepareHost(baseline, D);
+    changes.push(...result.changes);
+    hostCompatibility = result.compatibility;
+    progress('新版独立界面补丁已生成',++completed,total,false);
+    if (!machineOutput) console.log('新版独立界面: ' + result.changes.length + ' 个资源已验证并生成');
   }
   if (scope !== 'web') {
     progress('正在汉化编辑器菜单',completed,total);
@@ -45,13 +59,14 @@ function prepare() {
   }
   const digest = I.sha(JSON.stringify(changes.map(x => [x.relative, I.sha(x.source)])));
   const directory = path.resolve(__dirname, '..', 'cache', 'plans', baseline.identity, scope + '-' + digest);
-  const report = { schema: 3, toolVersion, scope, identity: baseline.identity, root: baseline.root, files: [] };
+  const report = { schema: 3, toolVersion, scope, identity: baseline.identity, root: baseline.root, hostCompatibility, files: [] };
   for (const change of changes) {
     const file = path.join(directory, change.relative);
     fs.mkdirSync(path.dirname(file), { recursive: true });
     fs.writeFileSync(file, change.source);
     report.files.push({ relative: change.relative, originalHash: baseline.manifest.files[change.relative], generatedHash: I.sha(change.source), stats: change.stats, rejections: change.rejections, compatibility: change.compatibility });
   }
+  require('./compatibility').assertPreparedCompatibility(report, baseline.identity, toolVersion, baseline);
   const reportFile = path.join(directory, 'report.json');
   progress('保存本版本的汉化结果',completed,total);
   fs.writeFileSync(reportFile, JSON.stringify(report, null, 2) + '\n');
@@ -67,9 +82,9 @@ function apply() {
     const report = C.readJson(file);
     const baseline = I.loadBaseline({ root: C.ROOT, create: true });
     checkInstallation(baseline);
-    require('./compatibility').assertPreparedCompatibility(report, baseline.identity, toolVersion);
+    require('./compatibility').assertPreparedCompatibility(report, baseline.identity, toolVersion, baseline);
     const changes = report.files.map(entry => {
-      if (!I.FILES.includes(entry.relative) || entry.originalHash !== baseline.manifest.files[entry.relative]) throw new Error('报告目标或原版校验不正确');
+      if (!baseline.files.includes(entry.relative) || entry.originalHash !== baseline.manifest.files[entry.relative]) throw new Error('报告目标或原版校验不正确');
       const source = fs.readFileSync(path.join(path.dirname(file), entry.relative), 'utf8');
       if (I.sha(source) !== entry.generatedHash) throw new Error('生成文件已变化: ' + entry.relative);
       return { relative: entry.relative, source };
@@ -133,7 +148,8 @@ function status() {
   const baseline = I.loadBaseline({ root: C.ROOT });
   console.log('安装目录: ' + baseline.root);
   console.log('原版备份: ' + baseline.dir);
-  for (const relative of I.FILES) console.log(relative, I.sha(baseline.current.get(relative)) === baseline.manifest.files[relative] ? '官方原版' : '已汉化（已验证生成文件）');
+  for (const relative of baseline.files) console.log(relative, I.sha(baseline.current.get(relative)) === baseline.manifest.files[relative] ? '官方原版' : '已汉化（已验证生成文件）');
+  if (baseline.host) console.log(`新版独立界面：${baseline.host.targets.length} 个补丁目标及 ${Object.keys(baseline.host.files).length} 个原版资源的官方安装包哈希已验证。`);
   const checks = I.integrityStatus(baseline);
   const patches = checks.filter(x => x.status === 'patch');
   const unexpected = checks.filter(x => ['unknown', 'missing'].includes(x.status));
@@ -153,6 +169,11 @@ function doctor() {
     console.log(relative + ': ' + (compatibility.compatible ? 'Web 结构兼容' : compatibility.reasons.join('；')));
     if (!compatibility.compatible) problems.push(compatibility);
   }
+  if (baseline.host && option('scope') !== 'nls') try {
+    const result = prepareHost(baseline, C.loadDict());
+    if (result.changes.length !== baseline.host.targets.length) throw new Error('独立界面补丁未覆盖全部目标');
+    console.log(`新版独立界面资源和设置结构兼容（${result.changes.length} 个目标）`);
+  } catch (error) { console.error('新版独立界面尚未适配：' + error.message); problems.push(error); }
   if (option('scope') !== 'web') try {
     require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
     console.log('NLS 语言包及消息结构兼容');

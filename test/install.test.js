@@ -52,6 +52,96 @@ function currentSources(root) {
   return new Map(FILES.map(relative => [relative, fs.readFileSync(path.join(root, relative), 'utf8')]));
 }
 
+function splitHostFixture(t) {
+  const options = fixture(t);
+  const entry = 'out/vs/workbench/devin-webapp-host/index.js';
+  const target = 'out/vs/workbench/devin-webapp-host/assets/ui-build.js';
+  const proof = 'out/vs/workbench/devin-webapp-host/assets/runtime-build.js';
+  const sources = {[entry]:'import "./assets/ui-build.js";', [target]:'const label="Settings";', [proof]:'const jsx="runtime evidence";'};
+  for (const [relative, source] of Object.entries(sources)) write(path.join(options.root, relative), source);
+  const productFile = path.join(options.root, 'product.json'), product = JSON.parse(fs.readFileSync(productFile,'utf8'));
+  product.windsurfVersion = '3.11.fixture';
+  product.checksums[entry.slice(4)] = crypto.createHash('sha256').update(sources[entry]).digest('base64');
+  write(productFile, JSON.stringify(product));
+  const build = {version:product.windsurfVersion,targets:[target],files:Object.fromEntries(Object.entries(sources).map(([k,v])=>[k,sha(v)]))};
+  return {...options,target,proof,hostSources:sources,hostCatalog:{schema:1,builds:{[product.commit]:build}}};
+}
+
+function legacyHostBaseline(options) {
+  const loc = loadBaseline(options);
+  const manifest = {schema:2,root:loc.root,identity:loc.identity,files:Object.fromEntries([...options.sources].map(([relative,source])=>[relative,sha(source)]))};
+  for (const [relative,source] of options.sources) write(path.join(loc.dir,'original',relative),source);
+  write(path.join(loc.dir,'baseline.json'),JSON.stringify(manifest));
+  const priorPatch='globalThis.chat="旧版已汉化";';
+  write(path.join(options.root,FILES[0]),priorPatch);
+  write(path.join(loc.dir,'state.json'),JSON.stringify({schema:2,applied:{[FILES[0]]:sha(priorPatch)}}));
+  return loc;
+}
+
+test('an older four-file baseline gains verified host originals without losing legacy patches', t => {
+  const options=splitHostFixture(t),loc=legacyHostBaseline(options);
+  const before=snapshot(options.cacheDir),readOnly=loadBaseline(options);
+  assert.deepEqual(snapshot(options.cacheDir),before,'status must not migrate files');
+  assert.equal(readOnly.originals.get(options.target),options.hostSources[options.target]);
+  const migrated=loadBaseline({...options,create:true});
+  assert.equal(migrated.identity,loc.identity);
+  assert.equal(fs.readFileSync(path.join(loc.dir,'baseline-before-host-targets.json'),'utf8'),before[''+path.relative(options.cacheDir,path.join(loc.dir,'baseline.json'))].source);
+  assert.equal(fs.readFileSync(path.join(loc.dir,'state.json'),'utf8'),before[path.relative(options.cacheDir,path.join(loc.dir,'state.json'))].source);
+  restore({...options,...stopped});
+  for(const [relative,source] of options.sources) assert.equal(fs.readFileSync(path.join(options.root,relative),'utf8'),source);
+  assert.equal(fs.readFileSync(path.join(options.root,options.target),'utf8'),options.hostSources[options.target]);
+});
+
+test('extending old baselines rejects unverified new targets before writing backup metadata', t => {
+  const options=splitHostFixture(t);legacyHostBaseline(options);
+  write(path.join(options.root,options.target),'unexpected local edit');
+  const before=snapshot(options.cacheDir);
+  assert.throws(()=>loadBaseline({...options,create:true}),/新增界面目标不是/);
+  assert.deepEqual(snapshot(options.cacheDir),before);
+});
+
+test('split host assets participate in verified backups, apply and restore', t => {
+  const options = splitHostFixture(t), baseline = loadBaseline({...options,create:true});
+  assert.ok(baseline.files.includes(options.target));
+  const source = 'const label="设置";';
+  transaction(baseline,[{relative:options.target,source}],stopped);
+  assert.equal(loadBaseline(options).current.get(options.target),source);
+  restore({...options,...stopped});
+  assert.equal(fs.readFileSync(path.join(options.root,options.target),'utf8'),options.hostSources[options.target]);
+  assert.equal(fs.readFileSync(path.join(baseline.dir,'original',options.target),'utf8'),options.hostSources[options.target]);
+});
+
+test('split host rejects unsupported builds, unsafe catalog targets and altered proof dependencies', t => {
+  const options = splitHostFixture(t);
+  assert.throws(()=>loadBaseline({...options,hostCatalog:{schema:1,builds:{}}}),/独立界面资源尚未适配/);
+  const invalid = structuredClone(options.hostCatalog);
+  Object.values(invalid.builds)[0].targets.push('../outside.js');
+  assert.throws(()=>loadBaseline({...options,hostCatalog:invalid}),/目标不在/);
+  write(path.join(options.root,options.proof),'modified runtime');
+  assert.throws(()=>loadBaseline(options),/已审查官方版本不一致/);
+});
+
+test('split host rejects unknown target edits and rechecks proof before writes', t => {
+  const options = splitHostFixture(t), baseline = loadBaseline({...options,create:true});
+  write(path.join(options.root,options.target),'unknown edit');
+  assert.throws(()=>loadBaseline(options),/未知修改/);
+  write(path.join(options.root,options.target),options.hostSources[options.target]);
+  write(path.join(options.root,options.proof),'modified runtime');
+  assert.throws(()=>transaction(baseline,[{relative:options.target,source:'translated'}],stopped),/已审查官方版本不一致/);
+  assert.equal(fs.readFileSync(path.join(options.root,options.target),'utf8'),options.hostSources[options.target]);
+});
+
+test('split host interrupted transaction recovers only validated journal targets', t => {
+  const options = splitHostFixture(t), baseline = loadBaseline({...options,create:true});
+  const backup = path.join(baseline.dir,'runs','host-interrupted'), before=options.hostSources[options.target], after='const label="设置";';
+  write(path.join(backup,options.target),before);
+  write(path.join(options.root,options.target),after);
+  write(path.join(baseline.dir,'pending.json'),JSON.stringify({backup,previousState:null,files:[{relative:options.target,before:sha(before),after:sha(after)}]}));
+  assert.throws(()=>loadBaseline(options),/中断/);
+  assert.equal(recover({...options,...stopped}).recovered,1);
+  assert.equal(loadBaseline(options).current.get(options.target),before);
+});
+
 test('integrity report distinguishes official files and recorded patches without changing official hashes', t => {
   const options = fixture(t);
   const baseline = loadBaseline({ ...options, create: true });

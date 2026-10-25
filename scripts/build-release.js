@@ -5,6 +5,7 @@ const crypto = require('node:crypto');
 const {execFileSync} = require('node:child_process');
 const {preflight} = require('./public-preflight');
 const {buildUserscript} = require('../web/build');
+const {appendManifest} = require('./tool-update');
 const ROOT = path.resolve(__dirname,'..');
 const git = args => execFileSync('git',args,{cwd:ROOT,encoding:'utf8',maxBuffer:128*1024*1024});
 function buildRelease(output=path.join(ROOT,'release-assets')) {
@@ -23,8 +24,11 @@ function buildRelease(output=path.join(ROOT,'release-assets')) {
   fs.writeFileSync(path.join(directory,scriptName),built.source);
   // Archive only reviewed, version-controlled source. No cache, app files or local configuration.
   const tracked = git(['ls-tree','-r','-z','--name-only','HEAD']).split('\0').filter(Boolean);
-  for (const archive of archives)
-    git(['archive','--format=zip','--prefix=devin-zh/','--output='+path.join(directory,archive.name),'HEAD','--',...tracked.filter(file=>!archive.exclude.includes(file))]);
+  for (const archive of archives) {
+    const file=path.join(directory,archive.name);
+    git(['archive','--format=zip','--prefix=devin-zh/','--output='+file,'HEAD','--',...tracked.filter(file=>!archive.exclude.includes(file))]);
+    fs.writeFileSync(file,appendManifest(fs.readFileSync(file),pkg.version,archive.name.includes('-Windows-')?'win32':'darwin'));
+  }
   const {source,...report} = built;
   report.sha256 = crypto.createHash('sha256').update(source).digest('hex');
   report.toolVersion = pkg.version;

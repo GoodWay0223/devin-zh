@@ -125,4 +125,4 @@ function discoverRuntimeIds(ast) {
   return result;
 }
 
-module.exports = { discoverRuntimeIds };
+module.exports = { discoverRuntimeIds, factoryEvidence };

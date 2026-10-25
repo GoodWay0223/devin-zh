@@ -54,8 +54,8 @@ function buildUserscript() {
 // @license      MIT
 // @homepageURL  https://github.com/GoodWay0223/devin-zh
 // @supportURL   https://github.com/GoodWay0223/devin-zh/issues
-// @downloadURL  none
-// @updateURL    none
+// @downloadURL  https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js
+// @updateURL    https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js
 // ==/UserScript==
 // Based on the user's exported KawaYiLab Devin-Web-Chinese 1.0.7 (MIT).
 // Copyright (c) 2026 KawaYiLab; modifications Copyright (c) 2026 GoodWay0223.

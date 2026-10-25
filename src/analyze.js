@@ -15,7 +15,7 @@ function resourceKind(obj) {
   return null;
 }
 
-function analyzeSource(src, { acorn } = {}) {
+function analyzeSource(src, { acorn, provenRuntimeBindings = new Map() } = {}) {
   if (!acorn?.parse) throw new Error('analyzeSource requires an injected Acorn parser');
   const ast = acorn.parse(src, { ecmaVersion: 'latest', sourceType: 'module' });
   const runtimeIds = require('./runtime').discoverRuntimeIds(ast);
@@ -30,7 +30,10 @@ function analyzeSource(src, { acorn } = {}) {
   }
   function pattern(n, scope, init = null, kind = null) {
     if (!n) return;
-    if (n.type === 'Identifier') bind(scope, n.name, init, kind);
+    if (n.type === 'Identifier') {
+      bind(scope, n.name, init, kind);
+      if (provenRuntimeBindings.has(n.start)) scope.bindings.get(n.name).provenKind = provenRuntimeBindings.get(n.start);
+    }
     else if (n.type === 'RestElement') pattern(n.argument, scope);
     else if (n.type === 'AssignmentPattern') pattern(n.left, scope);
     else if (n.type === 'ObjectPattern') for (const p of n.properties) pattern(p.type === 'RestElement' ? p.argument : p.value, scope);
@@ -87,6 +90,7 @@ function analyzeSource(src, { acorn } = {}) {
     if (!n) return null;
     if (n.type === 'Identifier') {
       const b = find(scope, n.name);
+      if (b?.provenKind && !b.ambiguous) return b.provenKind;
       if (!b || b.ambiguous || b.mutated || seen.has(b)) return null;
       if (b.kind) return b.kind;
       seen.add(b); return resolve(b.init, scopes.get(b.init) || b.scope, seen);
@@ -233,7 +237,7 @@ function analyzeSource(src, { acorn } = {}) {
     if (left.type !== 'MemberExpression' || left.computed || keyOf(left.property) !== 'displayName' || staticText(assignment.right) !== 'CapabilitySelector') continue;
     const fn = componentFunction(left.object, scopes.get(left));
     const params = parameters(fn);
-    if (fn && ['footerWidth', 'disabled'].every(k => params.has(k))) capabilityRoots.push(fn);
+    if (fn && params.has('disabled') && (params.has('footerWidth') || params.has('iconOnly'))) capabilityRoots.push(fn);
   }
   // Follow only render-connected capability menu contracts. Icons and arbitrary
   // components reachable through the selector are deliberately not followed.
@@ -250,6 +254,57 @@ function analyzeSource(src, { acorn } = {}) {
       capabilityComponents.add(fn); next.push(fn);
     }
     frontier = next;
+  }
+  // Newer selectors turn a title/detail pair into a React node before handing it
+  // to the menu. Translate only the detail argument at a proven item producer;
+  // changing a shared helper body would also affect unrelated callers.
+  function pairedTooltipHelper(fn) {
+    if (!fn || fn.params.length !== 3 || fn.params.some(p => p.type !== 'Identifier')) return false;
+    const bindings = fn.params.map(p => find(scopes.get(fn.body), p.name));
+    if (new Set(bindings).size !== 3 || bindings.some(b => !safeBinding(b))) return false;
+    const matches = (node, index) => node?.type === 'Identifier' && find(scopes.get(node), node.name) === bindings[index];
+    const empty = node => node?.type === 'Literal' && node.value === null || node?.type === 'UnaryExpression' && node.operator === 'void' && node.argument.type === 'Literal' && node.argument.value === 0;
+    const expression = fn.body.type === 'BlockStatement' && fn.body.body.length === 1 && fn.body.body[0].type === 'ReturnStatement' ? fn.body.body[0].argument : fn.body;
+    if (expression?.type !== 'ConditionalExpression' || expression.test.type !== 'LogicalExpression' || expression.test.operator !== '||' || !matches(expression.test.left, 0) || !matches(expression.test.right, 1) || !empty(expression.alternate)) return false;
+    function intrinsic(call, tag) {
+      if (!['jsx', 'jsxs'].includes(renderMethod(call)) || staticText(call.arguments[0]) !== tag || call.arguments.length !== 2 || call.arguments[1]?.type !== 'ObjectExpression') return false;
+      return call.arguments[1].properties.every(p => p.type === 'Property' && !p.computed && ['className', 'children'].includes(keyOf(p.key)));
+    }
+    const outer = expression.consequent;
+    if (!intrinsic(outer, 'div')) return false;
+    const children = prop(outer.arguments[1], 'children'), className = prop(outer.arguments[1], 'className');
+    if (className && staticText(className) === undefined && !(className.type === 'CallExpression' && className.callee.type === 'Identifier' && className.arguments.every(arg => staticText(arg) !== undefined || matches(arg, 2)))) return false;
+    if (children?.type !== 'ArrayExpression' || children.elements.length !== 2) return false;
+    return children.elements.every((child, index) => {
+      if (child?.type !== 'ConditionalExpression' || !matches(child.test, index) || !empty(child.alternate) || !intrinsic(child.consequent, 'span')) return false;
+      const properties = child.consequent.arguments[1], style = prop(properties, 'className');
+      return matches(prop(properties, 'children'), index) && (!style || staticText(style) !== undefined);
+    });
+  }
+  const capabilityItemMaps = new Set();
+  for (const selector of capabilityRoots) for (const call of calls) {
+    if (call.start < selector.body.start || call.end > selector.body.end || !renderMethod(call)) continue;
+    const menu = componentFunction(call.arguments[0], scopes.get(call));
+    if (!capabilityComponents.has(menu) || !['fusion', 'items', 'value', 'onValueChange'].every(k => parameters(menu).has(k))) continue;
+    const items = prop(call.arguments[1], 'items');
+    const binding = items?.type === 'Identifier' && find(scopes.get(items), items.name), map = binding?.init;
+    if (!safeBinding(binding) || map?.type !== 'CallExpression' || map.callee.type !== 'MemberExpression' || map.callee.computed || keyOf(map.callee.property) !== 'map' || map.arguments.length !== 1) continue;
+    const fn = map.arguments[0];
+    if (['ArrowFunctionExpression', 'FunctionExpression'].includes(fn?.type)) capabilityItemMaps.add(fn);
+  }
+  let capabilityTooltipDetails = 0;
+  for (const call of calls) {
+    const property = parents.get(call), object = parents.get(property), statement = parents.get(object);
+    if (property?.type !== 'Property' || property.computed || keyOf(property.key) !== 'tooltip' || object?.type !== 'ObjectExpression' || statement?.type !== 'ReturnStatement') continue;
+    let owner = parents.get(statement);
+    while (owner && !/^(FunctionExpression|FunctionDeclaration|ArrowFunctionExpression)$/.test(owner.type)) owner = parents.get(owner);
+    if (!capabilityItemMaps.has(owner) || ![2, 3].includes(call.arguments.length) || !pairedTooltipHelper(componentFunction(call.callee, scopes.get(call)))) continue;
+    const [title, detail] = call.arguments;
+    if (title?.type !== 'MemberExpression' || detail?.type !== 'MemberExpression' || title.computed || detail.computed || keyOf(title.property) !== 'tooltip' || keyOf(detail.property) !== 'tooltipDetail' || title.object.type !== 'Identifier' || detail.object.type !== 'Identifier') continue;
+    const binding = find(scopes.get(title.object), title.object.name);
+    if (!safeBinding(binding) || binding !== find(scopes.get(detail.object), detail.object.name)) continue;
+    displayValue(detail, 'capabilityDescription');
+    capabilityTooltipDetails++;
   }
   function capabilityDisplay(node, call) {
     const fn = [...capabilityComponents].find(fn => call.start >= fn.body.start && call.end <= fn.body.end);
@@ -348,7 +403,7 @@ function analyzeSource(src, { acorn } = {}) {
     if (method === 'createElement') for (const n of call.arguments.slice(2)) collect(n, 'children');
   }
   blocks.sort((a, b) => a.index - b.index); ui.sort((a, b) => a.index - b.index);
-  return { blocks, ui, display, stats: { jsonCalls, staticJsonBlocks: blocks.length, englishResources: blocks.filter(b => b.en).length, renderCalls, uiPositions: ui.length, displayPositions: display.length, modeSelectors: modeSelectors.length, settingsRows: settingsRows.size, settingsActions: settingsActions.size, capabilitySelectors: capabilityRoots.length, capabilityComponents: capabilityComponents.size, runtimeModules: [...runtimeIds].map(([id, kind]) => ({ id, kind })) } };
+  return { blocks, ui, display, stats: { jsonCalls, staticJsonBlocks: blocks.length, englishResources: blocks.filter(b => b.en).length, renderCalls, uiPositions: ui.length, displayPositions: display.length, modeSelectors: modeSelectors.length, settingsRows: settingsRows.size, settingsActions: settingsActions.size, capabilitySelectors: capabilityRoots.length, capabilityComponents: capabilityComponents.size, capabilityTooltipDetails, runtimeModules: [...runtimeIds].map(([id, kind]) => ({ id, kind })) } };
 }
 
 module.exports = { analyzeSource, resourceKind, UI_PROPS };

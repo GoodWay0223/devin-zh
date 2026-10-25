@@ -2,7 +2,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const {FILES,loadBaseline} = require('../src/install');
+const {loadBaseline} = require('../src/install');
 
 // A newly extracted tool must not treat already patched files as originals.
 // Import only the verified baseline and applied hashes, never arbitrary cache files.
@@ -27,7 +27,7 @@ function importVerifiedBackup(root, {projectDir,toolDirs = []} = {}) {
         fs.mkdirSync(path.dirname(file),{recursive:true}); fs.writeFileSync(file,source,{flag:'wx'});
       }
       fs.writeFileSync(path.join(temp,'baseline.json'),JSON.stringify({schema:2,root:baseline.root,identity:baseline.identity,files:baseline.manifest.files},null,2)+'\n',{flag:'wx'});
-      const applied = Object.fromEntries(FILES.filter(file=>baseline.state.applied[file]).map(file=>[file,baseline.state.applied[file]]));
+      const applied = Object.fromEntries(baseline.files.filter(file=>baseline.state.applied[file]).map(file=>[file,baseline.state.applied[file]]));
       fs.writeFileSync(path.join(temp,'state.json'),JSON.stringify({schema:2,applied},null,2)+'\n',{flag:'wx'});
       fs.renameSync(temp,destination);
       loadBaseline({root,cacheDir}); // Recheck both the current installation and the copied originals.

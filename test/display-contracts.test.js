@@ -86,6 +86,67 @@ test('mutated capability item objects fail closed', () => {
   assert.equal(candidate, undefined);
 });
 
+const tooltipHelper = 'const tooltipParts=(title,detail,width)=>title||detail?JSX.jsxs("div",{className:classes("flex flex-col",width),children:[title?JSX.jsx("span",{children:title}):null,detail?JSX.jsx("span",{className:"opacity-80",children:detail}):null]}):void 0;';
+const modernCapability = capability.replace(
+  'const Selector=React.memo(({footerWidth=9999,disabled=false})=>JSX.jsx(Menu,{fusion:true,items:options,value:"normal",onValueChange:choose}));',
+  `function classes(...values){return values.filter(Boolean).join(" ");}
+  ${tooltipHelper}
+  const Selector=React.memo(({iconOnly=false,disabled=false})=>{
+    const items=options.map(option=>{
+      const presentation=option.presentation;
+      return {id:option.id,label:option.label,tooltip:tooltipParts(presentation.tooltip,presentation.tooltipDetail)};
+    });
+    return JSX.jsx(Menu,{fusion:true,items,value:"normal",onValueChange:choose});
+  });`
+).replace('globalThis.result=JSX.jsx(Selector,{});',
+  'globalThis.result=JSX.jsxs("main",{children:[JSX.jsx(Selector,{}),JSX.jsx("article",{children:tooltipParts(options[0].presentation.tooltip,options[0].presentation.tooltipDetail)})]});');
+
+test('modern capability item tooltip details translate without altering titles or shared helper callers', () => {
+  const options=[{id:'normal',label:'Normal',presentation:{tooltip:'GPT-6.1 Sol',tooltipDetail:normalText}}];
+  const snapshot=JSON.stringify(options), analysis=C.analyze(modernCapability);
+  assert.equal(analysis.stats.capabilitySelectors,1);
+  assert.equal(analysis.stats.capabilityTooltipDetails,1);
+  const patched=patchSource(modernCapability,emptyDictionary,{});
+  assert.ok(patched.source.includes(tooltipHelper), 'the shared helper body must stay byte-identical');
+  assert.ok(patched.source.includes('id:option.id,label:option.label'));
+  assert.ok(patched.source.includes('onValueChange:choose'));
+  const rendered=nodes(execute(patched.source,{options}));
+  const tooltip=rendered.find(n=>n.type==='tooltip'&&typeof n.props.content==='object');
+  const parts=nodes(tooltip.props.content).filter(n=>n.type==='span').map(n=>n.props.children);
+  assert.deepEqual(parts,['GPT-6.1 Sol',descriptions.translateModelDescription(normalText)]);
+  const unrelated=rendered.find(n=>n.type==='article');
+  assert.ok(nodes(unrelated).some(n=>n.props?.children===normalText));
+  assert.equal(JSON.stringify(options),snapshot);
+});
+
+test('unknown tooltip details and non-text description objects retain their identity', () => {
+  const detail={type:'user-content',props:{children:'User text'}};
+  const patched=patchSource(modernCapability,emptyDictionary,{});
+  for(const value of ['A new description from a future build',detail]) {
+    const rendered=nodes(execute(patched.source,{options:[{id:'future',label:'Future Model',presentation:{tooltip:'Future Model',tooltipDetail:value}}]}));
+    const tooltip=rendered.find(n=>n.type==='tooltip'&&typeof n.props.content==='object');
+    assert.ok(nodes(tooltip.props.content).some(n=>n.props?.children===value));
+  }
+});
+
+test('capability helper matching rejects changed render shapes, mutation, and unrelated item inputs', () => {
+  for(const source of [
+    modernCapability.replace('children:detail}', 'children:readMessage(detail)}'),
+    modernCapability.replace('=>title||detail?', '=>(detail=readMessage())||title||detail?'),
+    modernCapability.replace('presentation.tooltipDetail)', 'option.message)'),
+    modernCapability.replace('items,value:"normal"', 'items:options,value:"normal"'),
+    modernCapability.replace('Selector.displayName="CapabilitySelector"', 'Selector.displayName="ChatMessages"'),
+    modernCapability.replace('className:"opacity-80"', 'onClick:()=>save(detail)'),
+  ]) assert.equal(C.analyze(source).stats.capabilityTooltipDetails,0);
+});
+
+test('conditional display collection never treats a typeof comparison as visible text', () => {
+  const source=`${imports} globalThis.result=JSX.jsx("div",{children:"string"===typeof options[0]?JSX.jsx("span",{children:options[0]}):null});`;
+  const result=patchSource(source,{...emptyDictionary,str:value=>value==='string'?'字符串':undefined},{});
+  assert.equal(result.source,source);
+  assert.ok(nodes(execute(result.source,{options:['Normal']})).some(n=>n.props?.children==='Normal'));
+});
+
 const settings = `${imports}
   function Row({id,labelId,label,description,displayLabel,displayDescription,orientation,scrollIntoView,children}) {
     const shownLabel=displayLabel??label, shownDescription=displayDescription??description;

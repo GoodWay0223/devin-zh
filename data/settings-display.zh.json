@@ -71,5 +71,11 @@
   "Customize": "自定义",
   "Open editor settings": "打开编辑器设置",
   "General editor preferences open in a separate page": "通用编辑器偏好设置在单独页面中打开",
-  "View all Devin shortcuts": "查看所有 Devin 快捷键"
+  "View all Devin shortcuts": "查看所有 Devin 快捷键",
+  "Marketplace extension gallery service URL": "扩展市场服务 URL",
+  "Base URL for marketplace search results. Restart Devin to use the new marketplace": "扩展市场搜索结果的基础 URL。重启 Devin 后使用新的扩展市场",
+  "Available marketplace options": "可用的扩展市场选项",
+  "Marketplace gallery item URL": "扩展市场详情页 URL",
+  "Base URL on each extension page. Restart Devin to use the new marketplace": "各扩展详情页的基础 URL。重启 Devin 后使用新的扩展市场",
+  "Available options": "可用选项"
 }

@@ -46,6 +46,7 @@ function preflight() {
     'package-lock.json','docs/desktop.md','web/README.md','dist/Devin-Web-Zh.user.js','dist/build-report.json',
     'START_HERE.md','Start-Windows.cmd','Start-macOS.command','scripts/launcher.js',
     'scripts/windows-installation.js','scripts/launcher-backups.js','scripts/language-pack.js','scripts/gui-backend.js',
+    'scripts/tool-update.js','src/host-assets.js','src/host-builds.js','data/host-builds.json',
     'Start-Windows.vbs','scripts/launcher-windows.cs','scripts/build-windows-gui.ps1',
     '汉化工具-Start-Windows.vbs','汉化工具-Start-Windows.cmd','汉化工具-Start-macOS.command','assets/github-mark-black.png',
     'assets/devin-zh-master.png','assets/devin-zh.png','assets/devin-zh-32.png','assets/devin-zh-64.png',
