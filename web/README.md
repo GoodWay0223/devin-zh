@@ -1,6 +1,6 @@
 # Devin 网页油猴汉化
 
-统一发布版本 **1.0.18**，网页脚本与桌面工具同号，均由 `package.json.version` 生成。本次配合 Devin Desktop 3.11.216 适配，同步适用于网页的共用界面文案；网页引擎沿用 1.0.13，保留与桌面工具统一的 A 款图标：Devin 标志 + 蓝色“中”字角标。脚本内嵌 `@icon` / `@icon64`，无需外部图片请求。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
+统一发布版本 **1.0.19**，网页脚本与桌面工具同号，均由 `package.json.version` 生成。本次补齐会话文件夹、更多操作、自定义、插件、安全子导航、筛选和账号菜单；保留与桌面工具统一的图标：Devin 标志 + 蓝色“中”字角标。脚本内嵌 `@icon` / `@icon64`，无需外部图片请求。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
 
 ## 首次安装
 
@@ -8,11 +8,11 @@
 
 ## 更新现有油猴脚本
 
-1.0.17 及更早版本禁用了自动更新，需要先手动安装一次 1.0.18。新版的 `@updateURL` 与 `@downloadURL` 均指向[本项目 GitHub 脚本](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)，后续由 Tampermonkey 按其更新设置检查和安装，也可从油猴管理面板主动检查更新。更新由油猴管理器执行，页面翻译脚本仍不请求翻译服务或发送页面内容。新版在用户现有油猴中的安装验收尚未完成。
+1.0.17 及更早版本禁用了自动更新，需要先手动安装一次当前版本。新版的 `@updateURL` 与 `@downloadURL` 均指向[本项目 GitHub 脚本](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)，后续由 Tampermonkey 按其更新设置检查和安装，也可从油猴管理面板主动检查更新。更新由油猴管理器执行，页面翻译脚本仍不请求翻译服务或发送页面内容。新版在用户现有油猴中的安装验收尚未完成。
 
 1. 保留原版导出文件，用于恢复。进入油猴管理面板，打开现有“Devin 网页端汉化”。
 2. 下载发布版脚本，或在项目根目录构建后打开 `web/dist/Devin-Web-Zh.user.js`，复制全部内容；在原脚本编辑器中全选、替换，再按 Ctrl+S 保存。
-3. 确认脚本版本显示 1.0.18，刷新 Devin 网页。每个页面只启用一份汉化脚本，避免同时运行旧版和新版。保留旧版导出备份，可随时恢复。1.0.11 有侧栏排除回归，不推荐使用。
+3. 确认脚本版本显示 1.0.19，刷新 Devin 网页。每个页面只启用一份汉化脚本，避免同时运行旧版和新版。保留旧版导出备份，可随时恢复。1.0.11 有侧栏排除回归，不推荐使用。
 4. 若发现问题，将原版备份内容全选替换回原脚本，保存并刷新，即可恢复。也可暂时关闭该脚本。
 
 保留原来的 `@name/@namespace` 以维护同一脚本。保留 `@grant none`，限定到 `app.devin.ai` 与 `app.beta.devin.ai`，不申请新权限，不请求翻译服务，不读取账户凭据，不发送页面或聊天内容。运行时代码只修改显示文字及 `placeholder/title/aria-label/alt/data-placeholder`，不改变输入值、URL、ID、开关状态或按钮回调。
@@ -42,7 +42,7 @@ MutationObserver 仅过滤及排队，不对每条流式记录执行正则。自
 - `data/web-reviewed.zh.json`：从实机网页、截图和已确认客户端共用界面资源审校的新增及修订文案。
 - `data/web-shortcuts.zh.json`：实际键盘快捷键页的 60 条文案。
 - `data/web-settings.zh.json`：组织及个人设置页的增量文案，含智能体、SSH、PR 权限、审查排除规则、语言及迁移提示。
-- `data/web-regex.zh.json`：11 条锚定的相对时间/工作时长规则。
+- `data/web-regex.zh.json`：锚定的相对时间、工作时长和插件操作规则。
 - `data/model-descriptions.zh.json`：两端共享的能力小字说明、名称保护及 2 条模型列表句式；模型列表的捕获内容保留原文。
 - `web/runtime.js`：网页 DOM 引擎，动态属性监听、分批处理、保护内容；构建时序列化进单文件。
 - `src/core.js`：客户端也读取三份人工新增词典，仍需经过客户端结构/占位符检查。

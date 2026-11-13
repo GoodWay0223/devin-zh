@@ -55,7 +55,12 @@ function buildFixture() {
 <a id="mixed-general" href="/org/example/settings/general">General</a><button id="mixed-open-settings">Open settings</button><a href="https://example.com/help">External help link</a>
 <p id="mixed-description">Manage your Devin Desktop API keys and privacy settings.</p>
 <button id="mixed-user-title">Review</button><div data-slot="sidebar-space"><button id="mixed-space-title">Cloud settings</button></div>
+<div data-slot="sidebar-label-row"><button id="sidebar-create" aria-label="New">+</button><button id="folder-options" aria-label="Folder options">…</button><a id="new-folder-session" href="/org/example" aria-label="New session in folder">+</a><button id="same-name-folder">New</button></div>
+<div data-slot="sidebar-menu-item"><a href="/sessions/abcd1234" aria-label="More">More</a><button id="session-more" data-slot="sidebar-menu-action" aria-label="More">…</button><button id="expand-children" aria-label="Expand children">⌄</button></div>
+<a id="findings-link" href="/org/example/security/findings">Findings</a><a id="unknown-security-link" href="/org/example/security/repositories/my-repo">Findings</a>
 </div></div>
+<button id="plugin-details" aria-label="View Redis details">ⓘ</button><button id="plugin-install" aria-label="Install for me Redis">+</button>
+<div role="menuitemcheckbox" aria-checked="true" id="show-children">Reveal child sessions</div>
 <section role="tree" data-session-id="layout-only"><button id="universal-tree-ui">Wiki</button><p id="universal-session-description">Manage your Devin Desktop API keys and privacy settings.</p></section>
 </section><section id="capability-fixture"><h2>能力和模型说明</h2>
 <div role="menu"><button role="menuitem" id="capability-normal">Normal</button><button role="menuitem" id="capability-fusion">Fusion</button><button role="menuitem" id="capability-ultra">Ultra</button><button role="menuitem" id="capability-lite">Lite</button><button role="menuitem" id="mode-agent">Agent</button><button role="menuitem" id="model-name">GPT-6.1 Sol</button></div>
@@ -137,6 +142,11 @@ check('纯固定设置导航不被会话区域排除',el('known-settings-sidebar
 check('混合通用侧栏中的已知导航和普通设置按钮继续翻译',el('mixed-general').textContent==='通用'&&el('mixed-open-settings').textContent==='打开设置');
 check('共享侧栏中的普通设置说明继续汉化',el('mixed-description').textContent==='管理 Devin 桌面版的 API 密钥和隐私设置。');
 check('混合侧栏里的用户名称和空间内容仍受保护',el('mixed-user-title').textContent==='Review'&&el('mixed-space-title').textContent==='Cloud settings');
+check('固定侧栏图标按钮与新建链接汉化',el('sidebar-create').getAttribute('aria-label')==='新建'&&el('folder-options').getAttribute('aria-label')==='文件夹选项'&&el('new-folder-session').getAttribute('aria-label')==='在文件夹中新建会话');
+check('会话行只汉化操作按钮',el('session-more').getAttribute('aria-label')==='更多'&&el('expand-children').getAttribute('aria-label')==='展开子会话'&&el('session-more').previousElementSibling.getAttribute('aria-label')==='More'&&el('same-name-folder').textContent==='New');
+check('只识别固定的安全菜单路径',el('findings-link').textContent==='发现项'&&el('unknown-security-link').textContent==='Findings');
+check('插件操作汉化并保留插件名称',el('plugin-details').getAttribute('aria-label')==='查看 Redis 的详情'&&el('plugin-install').getAttribute('aria-label')==='为自己安装 Redis');
+check('子会话显示开关汉化并保留状态',el('show-children').textContent==='显示子会话'&&el('show-children').getAttribute('aria-checked')==='true');
 check('通用 tree/session-id 布局标记不会封掉固定界面',el('universal-tree-ui').textContent==='知识库'&&el('universal-session-description').textContent==='管理 Devin 桌面版的 API 密钥和隐私设置。');
 el('dynamic-attr').setAttribute('title','Full width');el('dynamic-attr').setAttribute('aria-label','Session info');
 el('wiki').firstChild.nodeValue='Customize';

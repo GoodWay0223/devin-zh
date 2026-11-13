@@ -49,6 +49,19 @@ test('GUI runner cancellation stops its own preparation child without a completi
   setTimeout(()=>abort.abort(),30);
   await assert.rejects(job,/abort/i);
 });
+test('GUI prepares reviewed native menus when the Marketplace lacks a matching pack',async t=>{
+  const {projectDir,root,sources}=fixture(t),events=[];
+  fs.writeFileSync(path.join(root,'package.json'),JSON.stringify({version:'1.141.2'}));
+  fs.writeFileSync(path.join(projectDir,'data/nls/test-reviewed.json'),JSON.stringify({Copy:'复制'}));
+  const fetchImpl=async()=>new Response(JSON.stringify({results:[{extensions:[]}]}));
+  const result=await operate({command:'prepare',root,scope:'all'},{projectDir,fetchImpl,emit:e=>events.push(e),log:()=>{}});
+  const nls=result.files.find(file=>file.relative==='out/nls.messages.json');
+  assert.equal(result.reviewedNls,true);
+  assert.equal(nls.stats.official,0);
+  assert.equal(nls.stats.manual,1);
+  assert.ok(events.some(event=>event.message.includes('人工词典')));
+  for(const [file,source] of sources)assert.equal(fs.readFileSync(path.join(root,file),'utf8'),source);
+});
 test('Windows button window compiles from reviewed source without showing an unattended UI', {skip:process.platform!=='win32'},()=>{
   const root=path.resolve(__dirname,'..');
   const command='& ([ScriptBlock]::Create([IO.File]::ReadAllText((Join-Path $env:DEVIN_ZH_GUI_PROJECT "scripts/build-windows-gui.ps1"))))';

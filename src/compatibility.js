@@ -28,6 +28,11 @@ function assertPreparedCompatibility(report, identity, toolVersion, baseline) {
     if (baseline.host && report.scope !== 'nls' && report.hostCompatibility?.compatible !== true) {
       throw new Error('准备报告缺少独立界面兼容性验证，请重新 prepare');
     }
+    if (baseline.host?.preserveChecksums === true && report.files.some(file =>
+      (legacy.slice(0,2).includes(file.relative) || Object.hasOwn(baseline.product.checksums ?? {},file.relative.slice(4))) &&
+      file.generatedHash!==baseline.manifest.files[file.relative])) {
+      throw new Error('准备报告会改变此构建受官方完整性校验的文件，请重新 prepare');
+    }
   }
 }
 module.exports = { webCompatibility, assertWebCompatibility, assertPreparedCompatibility };

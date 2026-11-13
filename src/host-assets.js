@@ -52,7 +52,7 @@ function index(source) {
   visit(ast,root);
   for(const assignment of assignments){let target=assignment.type==='UpdateExpression'?assignment.argument:assignment.left;const direct=target.type==='Identifier';while(target?.type==='MemberExpression')target=target.object;if(target?.type!=='Identifier')continue;const binding=find(scopes.get(target),target.name);if(!binding)continue;if(direct)binding.writes.push(assignment.type==='AssignmentExpression'&&assignment.operator==='='?assignment.right:null);else binding.memberWrite=true;}
   const value = binding => !binding||binding.ambiguous||binding.memberWrite||binding.writes.length>1||binding.init&&binding.writes.length ? undefined : binding.init||binding.writes[0];
-  return {source,ast,scopes,parents,root,bindings,imports,exports,calls,objects,find,nodeBinding:node=>node?.type==='Identifier'?find(scopes.get(node),node.name):undefined,value};
+  return {source,ast,scopes,parents,root,bindings,imports,exports,calls,objects,assignments,find,nodeBinding:node=>node?.type==='Identifier'?find(scopes.get(node),node.name):undefined,value};
 }
 function safeRelative(from, specifier) {
   if(typeof specifier!=='string'||!specifier.startsWith('./')||specifier.includes('\\')||specifier.includes('..')||/[?#:\0]/.test(specifier)||!specifier.endsWith('.js'))throw new Error('Unsupported host import: '+specifier);
@@ -69,6 +69,16 @@ function read(root,relative,originals) {
 }
 function discover(root) {
   if(!fs.existsSync(path.join(root,HOST)))return null;
+  const productFile=path.join(root,'product.json');
+  if(fs.existsSync(productFile)){
+    const product=JSON.parse(fs.readFileSync(productFile,'utf8'));
+    const {hostBuild,verifyHostFiles}=require('./host-builds');
+    const build=hostBuild(root,product);
+    if(build){
+      verifyHostFiles(root,build);
+      return {targets:build.targets,proofFiles:Object.keys(build.files)};
+    }
+  }
   const entry=HOST+'/editor-mode-menu.js',entryIndex=index(read(root,entry));
   const targets=new Set(),proof=new Set([entry,HOST+'/index.js']);
   for(const binding of entryIndex.imports){const relative=safeRelative(entry,binding.import.source);const source=read(root,relative);if(source.includes('Access level')&&source.includes('react.transitional.element'))targets.add(relative);}
@@ -229,7 +239,26 @@ function settingsDropdownDisplays(relative,meta,exportsByFile,table,metas) {
   const member=(node,binding,name)=>node?.type==='MemberExpression'&&!node.computed&&key(node.property)===name&&stable(binding)&&meta.nodeBinding(node.object)===binding;
   const ownerOf=node=>{let owner=meta.parents.get(node);while(owner&&!FN.has(owner.type))owner=meta.parents.get(owner);return owner;};
   for(const imported of meta.imports){const dependency=safeRelative(relative,imported.import.source),other=metas.get(dependency);if(!other)continue;const fn=other.value(other.root.bindings.get(other.exports.get(imported.import.name)));if(!FN.has(fn?.type)||fn.params[0]?.type!=='ObjectPattern'||!['label','description','displayLabel','displayDescription','labelId','children'].every(name=>fn.params[0].properties.some(p=>key(p.key)===name)))continue;const a=analyzeSource(other.source,{acorn:C.parser(),provenRuntimeBindings:runtimeBindings(dependency,other,exportsByFile)});if(a.stats.settingsRows&&a.display.filter(n=>n.kind==='settings'&&n.index>fn.start&&n.index<fn.end).length>=2)rows.add(imported);}
-  const memoBody=call=>{const callee=call?.callee?.type==='SequenceExpression'?call.callee.expressions.at(-1):call?.callee;return call?.type==='CallExpression'&&callee?.type==='MemberExpression'&&!callee.computed&&key(callee.property)==='useMemo'&&call.arguments.length===2&&FN.has(call.arguments[0]?.type)&&call.arguments[0].params.length===0?call.arguments[0].body:undefined;};
+  function isImportedMemo(callee) {
+    const binding=meta.nodeBinding(callee);
+    if(!stable(binding)||!binding.import)return false;
+    const other=metas.get(safeRelative(relative,binding.import.source));
+    const exported=other?.root.bindings.get(other.exports.get(binding.import.name));
+    if(!stable(exported)||exported.init)return false;
+    const writes=other.assignments.flatMap(assignment=>{
+      const pattern=assignment.left;
+      if(pattern?.type!=='ObjectPattern'&&pattern?.type!=='ArrayPattern')return [];
+      let writesExport=false;
+      walk(pattern,node=>{if(other.nodeBinding(node)===exported)writesExport=true;});
+      return writesExport?[assignment]:[];
+    });
+    if(writes.length!==1)return false;
+    const [{left,right,operator}]=writes;
+    return operator==='='&&left.type==='ObjectPattern'&&right.type==='MemberExpression'&&!right.computed&&key(right.property)==='default'&&
+      ['useState','useEffect','useCallback','useRef'].every(name=>left.properties.some(p=>p.type==='Property'&&!p.computed&&key(p.key)===name))&&
+      left.properties.some(p=>p.type==='Property'&&!p.computed&&key(p.key)==='useMemo'&&other.nodeBinding(p.value)===exported);
+  }
+  const memoBody=call=>{const callee=call?.callee?.type==='SequenceExpression'?call.callee.expressions.at(-1):call?.callee;const memo=callee?.type==='MemberExpression'&&!callee.computed&&key(callee.property)==='useMemo'||isImportedMemo(callee);return call?.type==='CallExpression'&&memo&&call.arguments.length===2&&FN.has(call.arguments[0]?.type)&&call.arguments[0].params.length===0?call.arguments[0].body:undefined;};
   function fromOptions(binding,setting){
     const body=memoBody(meta.value(binding));if(!body)return false;let found=false;
     walk(body,node=>{if(node.type!=='ForOfStatement'||!member(node.right,setting,'options')||node.left.type!=='VariableDeclaration'||node.left.declarations.length!==1)return;const option=meta.nodeBinding(node.left.declarations[0].id);walk(node.body,value=>{if(value.type!=='ObjectExpression')return;const call=meta.parents.get(value);if(call?.type==='CallExpression'&&call.callee.type==='MemberExpression'&&key(call.callee.property)==='push'&&member(property(value,'label'),option,'label')&&meta.nodeBinding(property(value,'original'))===option&&property(value,'value'))found=true;});});return found;
@@ -314,6 +343,14 @@ function capabilityDescriptions(relative,meta,exportsByFile,metas,dictionary=C.l
   const isRender=renderer(relative,meta),replacements=[],positions=new Set(),models=require('./model-translations');let fusionDescriptions=0,cardDescriptions=0,toggleLabels=0,sectionHeaders=0;
   const exclusiveRenderer=(binding,owner)=>{let exclusive=!!binding;walk(meta.ast,node=>{if(node.type!=='Identifier'||node===binding?.id||meta.nodeBinding(node)!==binding)return;const parent=meta.parents.get(node);if(!isRender(parent)||parent.arguments[0]!==node||!owns(owner,parent))exclusive=false;});return exclusive;};
   const add=(node,table=models.descriptions,rules=models.rules)=>{if(positions.has(node.start))return false;positions.add(node.start);replacements.push({start:node.start,end:node.end,value:wrapper(meta.source.slice(node.start,node.end),table,false,rules)});return true;};
+  function toggleLabelIsDisplayOnly(toggle) {
+    if(!has(toggle,['label','checked','disabled','disabledTooltip','onToggle']))return false;
+    const binding=meta.nodeBinding(params(toggle).get('label'));
+    if(!stable(binding))return false;
+    const reads=[];
+    walk(toggle.body,node=>{if(node.type==='Identifier'&&meta.nodeBinding(node)===binding)reads.push(node);});
+    return reads.length===1&&meta.calls.some(output=>owns(toggle,output)&&isRender(output,'span')&&property(output.arguments[1],'children')===reads[0]);
+  }
   function sectionGroupFactory(fn,source){
     if(!FN.has(fn?.type)||fn.params.length!==1||fn.params[0].type!=='Identifier')return false;
     const input=meta.nodeBinding(fn.params[0]);let matches=false;
@@ -340,11 +377,19 @@ function capabilityDescriptions(relative,meta,exportsByFile,metas,dictionary=C.l
     }
     for(const item of items){const itemBinding=meta.nodeBinding(params(item).get('item'));if(!stable(itemBinding))continue;
       for(const call of meta.calls){if(!owns(item,call)||!isRender(call))continue;const cardFn=functionOf(meta,call.arguments[0]),props=call.arguments[1];
-        if(has(cardFn,['label','checked','disabled','disabledTooltip','onToggle'])){
+        const speed=meta.nodeBinding(params(item).get('speed'));
+        if(has(cardFn,['speed'])&&params(cardFn).size===1&&stable(speed)&&meta.nodeBinding(property(props,'speed'))===speed&&exclusiveRenderer(meta.nodeBinding(call.arguments[0]),item)){
+          const input=meta.nodeBinding(params(cardFn).get('speed'));
+          for(const output of meta.calls){
+            if(!owns(cardFn,output)||!isRender(output))continue;
+            const toggle=functionOf(meta,output.arguments[0]),toggleProps=output.arguments[1],label=property(toggleProps,'label');
+            if(!toggleLabelIsDisplayOnly(toggle)||label?.type!=='LogicalExpression'||label.operator!=='??'||text(label.right)!=='Fast mode'||!field(meta,label.left,input,'toggleLabel')||!field(meta,property(toggleProps,'disabled'),input,'disabled')||!field(meta,property(toggleProps,'disabledTooltip'),input,'disabledTooltip'))continue;
+            if(add(label,{'Fast mode':models.descriptions['Fast mode']},[]))toggleLabels++;
+          }
+        }
+        if(toggleLabelIsDisplayOnly(cardFn)){
           const callback=ownerOf(meta,call),map=meta.parents.get(callback),option=callback?.params[0],toggles=map?.callee?.object,card=toggles?.object,optionBinding=meta.nodeBinding(option),label=property(props,'label');
-          const labelBinding=meta.nodeBinding(params(cardFn).get('label')),labelReads=[];walk(cardFn.body,node=>{if(node.type==='Identifier'&&meta.nodeBinding(node)===labelBinding)labelReads.push(node);});
-          const displayOnly=stable(labelBinding)&&labelReads.length===1&&meta.parents.get(labelReads[0])?.type==='Property'&&key(meta.parents.get(labelReads[0]).key)==='children'&&meta.calls.some(output=>owns(cardFn,output)&&isRender(output,'span')&&property(output.arguments[1],'children')===labelReads[0]);
-          if(displayOnly&&callback?.type==='ArrowFunctionExpression'&&callback.params.length===1&&map?.type==='CallExpression'&&map.arguments[0]===callback&&key(map.callee.property)==='map'&&toggles?.type==='MemberExpression'&&!toggles.computed&&key(toggles.property)==='toggles'&&field(meta,card,itemBinding,'card')&&field(meta,label,optionBinding,'label')&&field(meta,property(props,'checked'),optionBinding,'checked')&&field(meta,property(props,'onToggle'),optionBinding,'onCheckedChange')&&add(label,models.descriptions,[]))toggleLabels++;
+          if(callback?.type==='ArrowFunctionExpression'&&callback.params.length===1&&map?.type==='CallExpression'&&map.arguments[0]===callback&&key(map.callee.property)==='map'&&toggles?.type==='MemberExpression'&&!toggles.computed&&key(toggles.property)==='toggles'&&field(meta,card,itemBinding,'card')&&field(meta,label,optionBinding,'label')&&field(meta,property(props,'checked'),optionBinding,'checked')&&field(meta,property(props,'onToggle'),optionBinding,'onCheckedChange')&&add(label,models.descriptions,[]))toggleLabels++;
         }
         if(!has(cardFn,['card','fallbackTitle'])||params(cardFn).size!==2||!field(meta,property(props,'card'),itemBinding,'card')||!field(meta,property(props,'fallbackTitle'),itemBinding,'label'))continue;
         const cardBinding=meta.nodeBinding(params(cardFn).get('card')),fallback=meta.nodeBinding(params(cardFn).get('fallbackTitle'));

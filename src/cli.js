@@ -9,6 +9,7 @@ const toolVersion = require('../package.json').version;
 const cmd = process.argv[2] || 'status';
 
 const option = name => process.argv.slice(3).find(x => x.startsWith('--' + name + '='))?.slice(name.length + 3);
+const reviewedOnly = process.argv.includes('--reviewed-nls');
 const progressOutput = process.argv.includes('--progress');
 const progress = (message,completed,total,busy=true) => {
   if (progressOutput) console.log(JSON.stringify({type:'progress',message,completed,total,busy,unit:'steps'}));
@@ -25,17 +26,24 @@ function prepare() {
   const machineOutput = process.argv.includes('--json') || progressOutput;
   const scope = option('scope') || 'all';
   if (!['all', 'web', 'nls'].includes(scope)) throw new Error('--scope 必须为 all/web/nls');
-  let total = scope === 'all' ? 5 : scope === 'web' ? 4 : 3;
-  let completed = 0;
-  progress('检查原版并保存恢复备份',completed,total);
+  progress('检查原版并保存恢复备份',0,0);
   const baseline = I.loadBaseline({ root: C.ROOT, create: true });
+  const preserveChecksums=baseline.host?.preserveChecksums === true;
+  let total = scope === 'all' ? 5 : scope === 'web' ? 4 : 3;
+  if (preserveChecksums && scope !== 'nls') total-=2;
   if (baseline.host && scope !== 'nls') total++;
   checkInstallation(baseline);
-  progress('原版检查和备份完成',++completed,total,false);
+  let completed=1;
+  progress('原版检查和备份完成',completed,total,false);
   const D = C.loadDict();
   const changes = [];
   let hostCompatibility;
   if (scope !== 'nls') for (const relative of I.FILES.slice(0, 2)) {
+    if (preserveChecksums) {
+      // Include verified originals in the same transaction to migrate older patches.
+      changes.push({ relative, source:baseline.originals.get(relative), stats:{restoresOfficial:true} });
+      continue;
+    }
     progress(relative === I.FILES[0] ? '正在汉化聊天界面' : '正在汉化会话和设置界面',completed,total);
     const result = patchSource(baseline.originals.get(relative), D, undefined, { requireCompatibility: true });
     changes.push({ relative, ...result });
@@ -52,14 +60,14 @@ function prepare() {
   }
   if (scope !== 'web') {
     progress('正在汉化编辑器菜单',completed,total);
-    const result = require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
+    const result = require('./nls').prepare({ root: C.ROOT, originals: baseline.originals, reviewedOnly });
     changes.push(...result.changes);
     progress('编辑器菜单补丁已生成',++completed,total,false);
-    if (!machineOutput) console.log(`NLS: ${result.stats.translated}/${result.stats.total}，拒绝 ${result.stats.rejected}`);
+    if (!machineOutput) console.log(`NLS${reviewedOnly ? '（人工词典）' : ''}: ${result.stats.translated}/${result.stats.total}，拒绝 ${result.stats.rejected}`);
   }
   const digest = I.sha(JSON.stringify(changes.map(x => [x.relative, I.sha(x.source)])));
   const directory = path.resolve(__dirname, '..', 'cache', 'plans', baseline.identity, scope + '-' + digest);
-  const report = { schema: 3, toolVersion, scope, identity: baseline.identity, root: baseline.root, hostCompatibility, files: [] };
+  const report = { schema: 3, toolVersion, scope, identity: baseline.identity, root: baseline.root, hostCompatibility, preserveChecksums, files: [] };
   for (const change of changes) {
     const file = path.join(directory, change.relative);
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -91,7 +99,7 @@ function apply() {
     });
     plan = { baseline, changes };
   } else plan = prepare();
-  if (plan.changes.some(x => x.relative.endsWith('/index.js') || x.relative.endsWith('/sessions.desktop.main.js'))) {
+  if (plan.changes.some(x => plan.baseline.product.checksums?.[x.relative.slice(4)] && I.sha(x.source)!==plan.baseline.manifest.files[x.relative])) {
     console.log('提示：完整界面汉化会改变官方校验的脚本，Devin 将提示“安装似乎损坏”。这是补丁差异；官方校验值保持原样。restore 可恢复。');
   }
   const result = I.transaction(plan.baseline, plan.changes);
@@ -164,7 +172,7 @@ function doctor() {
   console.log(`汉化工具 ${toolVersion}；Devin ${baseline.product.windsurfVersion || '未知版本'}；VS Code ${baseline.product.version || '未知版本'}；安装标识 ${baseline.identity}`);
   const problems = I.integrityStatus(baseline).filter(x => ['missing', 'unknown'].includes(x.status));
   for (const problem of problems) console.error('未知安装变化：' + problem.relative);
-  for (const relative of I.FILES.slice(0, 2)) {
+  for (const relative of baseline.host?.preserveChecksums === true ? [] : I.FILES.slice(0, 2)) {
     const compatibility = require('./compatibility').webCompatibility(C.analyze(baseline.originals.get(relative)));
     console.log(relative + ': ' + (compatibility.compatible ? 'Web 结构兼容' : compatibility.reasons.join('；')));
     if (!compatibility.compatible) problems.push(compatibility);
@@ -173,10 +181,11 @@ function doctor() {
     const result = prepareHost(baseline, C.loadDict());
     if (result.changes.length !== baseline.host.targets.length) throw new Error('独立界面补丁未覆盖全部目标');
     console.log(`新版独立界面资源和设置结构兼容（${result.changes.length} 个目标）`);
+    if (baseline.host.preserveChecksums === true) console.log('此构建的 Agent 汉化保留官方完整性校验覆盖的文件');
   } catch (error) { console.error('新版独立界面尚未适配：' + error.message); problems.push(error); }
   if (option('scope') !== 'web') try {
-    require('./nls').prepare({ root: C.ROOT, originals: baseline.originals });
-    console.log('NLS 语言包及消息结构兼容');
+    const {stats}=require('./nls').prepare({ root: C.ROOT, originals: baseline.originals, reviewedOnly });
+    console.log(reviewedOnly ? `NLS 消息结构兼容，人工词典覆盖 ${stats.translated}/${stats.total} 条` : 'NLS 语言包及消息结构兼容');
   } catch (error) { console.error('NLS 尚未适配：' + error.message); problems.push(error); }
   console.log('doctor 只读检查完成，没有修改安装文件。');
   if (problems.length) process.exitCode = 1;
@@ -228,5 +237,5 @@ async function translateStrings() {
   else if (cmd === 'prune') prune();
   else if (cmd === 'translate') await translate();
   else if (cmd === 'translate-strings') await translateStrings();
-  else throw new Error('用法: node src/cli.js <prepare|apply|restore|recover|status|doctor|strings|translate|translate-strings> [--scope=all|web|nls] [--prepared=report.json]');
+  else throw new Error('用法: node src/cli.js <prepare|apply|restore|recover|status|doctor|strings|translate|translate-strings> [--scope=all|web|nls] [--reviewed-nls] [--prepared=report.json]');
 })().catch(error => { console.error(error.message); process.exitCode = 1; });

@@ -64,26 +64,30 @@ function translationProblem(original, translated) {
   return null;
 }
 
-function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_PACK } = {}) {
+function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_PACK, reviewedOnly = false } = {}) {
   if (typeof root !== 'string' || !(originals instanceof Map)) throw new TypeError('NLS prepare requires root and originals Map');
   for (const relative of [JS, JSON_FILE]) {
     if (!originals.has(relative) || typeof originals.get(relative) !== 'string') throw new Error(`NLS original missing: ${relative}`);
   }
-  if (!fs.existsSync(packFile)) {
+  if (!reviewedOnly && !fs.existsSync(packFile)) {
     const error = new Error(`NLS language pack missing: ${packFile}`);
     error.code = 'NLS_PACK_MISSING';
     throw error;
   }
-  const appPackage = path.join(root, 'package.json');
-  const packPackage = path.join(path.dirname(packFile), '..', 'package.json');
-  if (!fs.existsSync(appPackage)) throw new Error('NLS app version metadata missing: ' + appPackage);
-  if (!fs.existsSync(packPackage)) throw new Error('NLS language pack version metadata missing: ' + packPackage);
-  {
+  let pack = Object.create(null);
+  if (!reviewedOnly) {
+    const appPackage = path.join(root, 'package.json');
+    const packPackage = path.join(path.dirname(packFile), '..', 'package.json');
+    if (!fs.existsSync(appPackage)) throw new Error('NLS app version metadata missing: ' + appPackage);
+    if (!fs.existsSync(packPackage)) throw new Error('NLS language pack version metadata missing: ' + packPackage);
     const appVersion = readObject(appPackage).version;
     const packVersion = readObject(packPackage).version;
     if (typeof appVersion !== 'string' || typeof packVersion !== 'string' || appVersion.split('.').slice(0, 2).join('.') !== packVersion.split('.').slice(0, 2).join('.')) {
       throw new Error(`NLS language pack version ${packVersion} does not match app ${appVersion}`);
     }
+    const packDocument = readObject(packFile);
+    if (!own(packDocument, 'contents') || !object(packDocument.contents)) throw new Error('NLS language pack lacks contents object');
+    pack = packDocument.contents;
   }
   const jsOriginal = originals.get(JS);
   const orig = JSON.parse(originals.get(JSON_FILE));
@@ -98,9 +102,6 @@ function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_P
   }
   const count = keys.reduce((sum, entry) => sum + entry[1].length, 0);
   if (count !== orig.length) throw new Error(`NLS key count ${count} does not match messages count ${orig.length}`);
-  const packDocument = readObject(packFile);
-  if (!own(packDocument, 'contents') || !object(packDocument.contents)) throw new Error('NLS language pack lacks contents object');
-  const pack = packDocument.contents;
   const force = readObject(path.join(dataDir, 'nls.json'), true);
   const manual = Object.create(null);
   const manualDir = path.join(dataDir, 'nls');
@@ -111,7 +112,7 @@ function prepare({ root, originals, dataDir = DEFAULT_DATA, packFile = DEFAULT_P
   }
   const messages = orig.slice();
   const covered = new Set();
-  const stats = { total: orig.length, official: 0, manual: 0, forced: 0, translated: 0, rejected: 0, rejections: [] };
+  const stats = { reviewedOnly, total: orig.length, official: 0, manual: 0, forced: 0, translated: 0, rejected: 0, rejections: [] };
   function put(index, value, kind, location) {
     const reason = translationProblem(orig[index], value);
     if (reason) {

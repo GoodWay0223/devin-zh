@@ -159,6 +159,17 @@ test('minified setting callbacks cannot shadow the captured native setting guard
 test('unknown option sources and projection consumers cannot use the native settings display rule',()=>{
   for(const source of [settings.replace('original:option','original:other'),settings.replace('label:option.label,original','label:option.message,original'),settings.replace('items:display','items:choices'),settings.replace('return JSX.jsx(Row,{id:setting.id,label:setting.label,description:setting.description','log(display);return JSX.jsx(Row,{id:setting.id,label:setting.label,description:setting.description')]){const g=graph({settings:source});assert.equal(H.settingsDropdownDisplays(names.settings,g.metas.get(names.settings),g.exportsByFile,{Medium:'中'},g.metas).replacements.length,0);}
 });
+test('the split settings renderer traces an imported useMemo alias to its named export',()=>{
+  const hooks="var memo;function initHooks(react){({useMemo:memo,useState:s,useEffect:e,useCallback:c,useRef:r}=react.default)}export {memo as m};";
+  const source="import {m as useMemo} from './resources-random.js';"+settings.replaceAll('React.useMemo','useMemo');
+  const count=hookSource=>{
+    const g=graph({entry:entry+hookSource,settings:source});
+    return H.settingsDropdownDisplays(names.settings,g.metas.get(names.settings),g.exportsByFile,{Medium:'中等'},g.metas).replacements.length;
+  };
+  assert.equal(count(hooks),2);
+  assert.equal(count(hooks.replace('useMemo:memo','unknown:memo')),0);
+  assert.equal(count(hooks+'memo=anotherHook;'),0);
+});
 test('server capability card and Fusion descriptions translate at output while names and model captures remain unchanged',()=>{
   const result=capabilities();assert.equal(result.menus,1);assert.equal(result.fusionDescriptions,1);assert.equal(result.cardDescriptions,1);
   const models=require('../src/model-translations'),unknown={type:'user-element',props:{children:'Untouched'}};
@@ -187,6 +198,13 @@ test('capability toggle and group captions translate without changing model name
   assert.equal(capabilities({menu:menu.replace('children:label','children:useMessage(label)')}).toggleLabels,0);
   assert.equal(capabilities({menu:menu.replace('item.card.toggles?.map','messages.map')}).toggleLabels,0);
   assert.equal(capabilities({menu:menu.replace('const section=item.section','const section=item.userMessage')}).sectionHeaders,0);
+});
+test('fast mode has a display-only label when the capability item uses a speed component',()=>{
+  const speed="function Speed({speed}){return JSX.jsx(Toggle,{label:speed.toggleLabel??'Fast mode',checked:speed.checked,disabled:speed.disabled,disabledTooltip:speed.disabledTooltip,onToggle:speed.onChange})}";
+  const source=menu.replace(/item\.card\.toggles\?\.map\(.+?onToggle:toggle\.onCheckedChange\}\)\)/,'JSX.jsx(Speed,{speed})')+speed;
+  assert.equal(capabilities({menu:source}).toggleLabels,1);
+  assert.equal(capabilities({menu:source.replace('children:label','children:handler(label)')}).toggleLabels,0);
+  assert.equal(capabilities({menu:source.replace('speed.toggleLabel','speed.userMessage')}).toggleLabels,0);
 });
 test('prepare covers the complete host target set and rejects broken contracts',t=>{
   const root=fs.mkdtempSync(path.join(os.tmpdir(),'devin-zh-host-test-'));

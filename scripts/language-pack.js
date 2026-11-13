@@ -273,7 +273,7 @@ async function ensureLanguagePack({root, projectDir = path.resolve(__dirname, '.
   }) : [];
   versions.sort((a, b) => b.version.localeCompare(a.version, 'en', {numeric: true}));
   const selected = versions[0];
-  if (!selected) throw fail('LANGUAGE_PACK_UNAVAILABLE', `微软 Marketplace 暂无与 Devin ${appVersion} 匹配的中文语言包，请改用 Agent 汉化范围。`);
+  if (!selected) throw fail('LANGUAGE_PACK_UNAVAILABLE', `微软 Marketplace 暂无与 Devin ${appVersion} 匹配的中文语言包。`);
   const downloadURL = officialURL(`${selected.fallbackAssetUri}/${ASSET}?redirect=true`);
   onProgress({phase: 'download', message: `正在下载微软中文语言包 ${selected.version}…`, version: selected.version});
   const archive = await requestBytes(downloadURL, {...dependencies, phase: 'download', maxBytes: maxDownloadBytes});

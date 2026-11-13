@@ -32,7 +32,7 @@ function mountDevinZh(win, dictionary, rules) {
     return placeholder && placeholder.closest(slateInput);
   }
   const own = (key) => Object.prototype.hasOwnProperty.call(dictionary, key);
-  const knownUiHref = href => /^\/(?:settings(?:\/|$)|org\/[^/]+\/(?:settings(?:\/|$)|customize(?:[?#]|$)|security(?:[?#]|$)|automations(?:[?#]|$)|wiki(?:[?#]|$))|review(?:[?#]|$))/.test(href || '');
+  const knownUiHref = href => /^\/(?:settings(?:\/|$)|org\/[^/]+\/(?:settings(?:\/|$)|customize(?:[?#]|$)|security(?:\/(?:new|overview|repositories|findings|red-teaming))?(?:[?#]|$)|automations(?:[?#]|$)|wiki(?:[?#]|$))|review(?:[?#]|$))/.test(href || '');
   function knownUiContainer(element) {
     const link = element.closest('a[href]');
     if (link && knownUiHref(link.getAttribute('href'))) return true;
@@ -55,12 +55,23 @@ function mountDevinZh(win, dictionary, rules) {
   const fixedSidebarGroups = new Set(['Sessions', 'Recent', 'Personal', 'Organization']);
   const fixedActionLabels = new Set(Array.from(fixedSidebarActions).flatMap(en => [en, dictionary[en]]).filter(Boolean));
   const fixedGroupLabels = new Set(Array.from(fixedSidebarGroups).flatMap(en => [en, dictionary[en]]).filter(Boolean));
+  const labelMatches = (label, keys) => keys.some(key => label === key || label === dictionary[key]);
+  function sidebarAction(element) {
+    if (!element.closest(sidebarContent)) return false;
+    const label = element.getAttribute('aria-label');
+    if (!label) return false;
+    if (element.matches('[data-slot="sidebar-label-row"] > button')) return labelMatches(label,['New','More','Folder options']);
+    if (element.matches('[data-slot="sidebar-label-row"] > a[href]') && /^\/org\/[^/?#]+\/?$/.test(element.getAttribute('href')))
+      return labelMatches(label,['New pinned session','New session in folder']);
+    if (element.matches('button[data-slot="sidebar-menu-action"]')) return labelMatches(label,['More']);
+    return element.matches('button') && !!element.closest('[data-slot="sidebar-menu-item"]') && labelMatches(label,['Expand children','Collapse children']);
+  }
   function userSidebarLeaf(element) {
     const content = element.closest(sidebarContent);
     if (!content) return false;
     // These are shared layout containers, not proof that their entire subtree
     // is user content. Keep walking them; classify only individual rows/leaves.
-    if (element.matches(sidebarContent) || knownUiContainer(element)) return false;
+    if (element.matches(sidebarContent) || knownUiContainer(element) || sidebarAction(element)) return false;
     // Unknown sidebar links can be user projects; leave the individual link
     // unchanged without rejecting its surrounding layout or fixed navigation.
     if (element.closest('a[href]')) return true;
@@ -99,7 +110,11 @@ function mountDevinZh(win, dictionary, rules) {
     return !!element && !blockedElement(element);
   }
   function pruneElement(element) {
-    if (element.matches(hardProtected) || userSidebarLeaf(element)) return true;
+    if (element.matches(hardProtected)) return true;
+    if (userSidebarLeaf(element)) {
+      queueSidebarActions(element);
+      return true;
+    }
     if (element.matches('[translate="no"]') && !element.matches(slateInput)) return true;
     // Keep the real Slate placeholder exception; never enter ordinary editors.
     if (element.matches('[contenteditable]:not([contenteditable="false"]), [role="textbox"]') &&
@@ -153,7 +168,7 @@ function mountDevinZh(win, dictionary, rules) {
     if (fileTab && !['tab:context', 'tab:computer', 'tab:changes', 'tab:code-changes'].includes(fileTab.getAttribute('data-flash-channel'))) return;
     const original = node.nodeValue;
     // Ordinary one-word values outside identified UI containers may be names.
-    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
+    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
     const next = translate(original);
     if (next !== original) { textWrites.set(node, next); node.nodeValue = next; }
   }
@@ -191,8 +206,16 @@ function mountDevinZh(win, dictionary, rules) {
     animationScheduled = typeof win.requestAnimationFrame === 'function';
     scheduled = animationScheduled ? win.requestAnimationFrame(flush) : win.setTimeout(flush, 16);
   };
+  function queueSidebarActions(row) {
+    if (!row.matches('[data-slot="sidebar-menu-item"], [data-slot="sidebar-menu-actions"]') || row.closest(hardProtected)) return;
+    for (const button of row.querySelectorAll('button[aria-label]')) if (sidebarAction(button)) enqueueAttributes(button);
+  }
   function enqueue(node) {
-    if (!node || !node.isConnected || disposed || !eligible(node)) return;
+    if (!node || !node.isConnected || disposed) return;
+    if (!eligible(node)) {
+      if(node.nodeType===1) queueSidebarActions(node);
+      return;
+    }
     for (let parent = node.parentElement; parent; parent = parent.parentElement) if (pending.has(parent)) return;
     // An ancestor can arrive after its children in one MutationObserver batch.
     // Keep only one traversal for that subtree regardless of arrival order.
@@ -266,7 +289,14 @@ function mountDevinZh(win, dictionary, rules) {
     }
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
-        if (!eligible(mutation.target)) { stats.ignoredMutations++; continue; }
+        if (!eligible(mutation.target)) {
+          for(const node of mutation.addedNodes) if(node.nodeType===1){
+            if(sidebarAction(node)) enqueueAttributes(node);
+            else queueSidebarActions(node);
+          }
+          stats.ignoredMutations++;
+          continue;
+        }
         for (const node of mutation.addedNodes) enqueue(node);
       } else if (mutation.type === 'characterData') {
         if (mutation.target.nodeValue === textWrites.get(mutation.target) || !eligible(mutation.target)) { stats.ignoredMutations++; continue; }

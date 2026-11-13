@@ -81,16 +81,25 @@ async function operate(request,{emit,signal,log,projectDir=ROOT,discover=launche
   if (command==='prepare') {
     const scope=request.scope || 'all';
     if (!['all','web'].includes(scope)) throw new Error('请选择完整汉化或聊天界面汉化。');
+    let reviewedNls=false;
     if (scope==='all') {
       const {ensureLanguagePack}=require('./language-pack');
       const hints=process.platform==='win32' ? require('./windows-installation').readWindowsHints() : [];
-      const pack=await ensureLanguagePack({root,projectDir,signal,toolDirs:hints.filter(hint=>hint.kind==='tool').map(hint=>hint.path),
-        onProgress:event=>emit({type:'progress',message:event.message,busy:!event.totalBytes,
-          completed:event.receivedBytes,total:event.totalBytes,unit:'bytes'})});
-      env.DEVIN_ZH_PACK=pack.packFile;
-      emit({type:'progress',message:'已取得匹配的编辑器中文资源',busy:false});
+      try {
+        const pack=await ensureLanguagePack({root,projectDir,signal,fetchImpl,toolDirs:hints.filter(hint=>hint.kind==='tool').map(hint=>hint.path),
+          onProgress:event=>emit({type:'progress',message:event.message,busy:!event.totalBytes,
+            completed:event.receivedBytes,total:event.totalBytes,unit:'bytes'})});
+        env.DEVIN_ZH_PACK=pack.packFile;
+        emit({type:'progress',message:'已取得匹配的编辑器中文资源',busy:false});
+      } catch (error) {
+        if(error.code!=='LANGUAGE_PACK_UNAVAILABLE'||signal?.aborted) throw error;
+        reviewedNls=true;
+        emit({type:'progress',message:'微软暂无匹配语言包，编辑器菜单将使用人工词典',busy:false});
+      }
     }
-    return await run(process.execPath,[cli,'prepare','--scope='+scope,'--progress'],{env,structured:true});
+    const options=reviewedNls?['--reviewed-nls']:[];
+    const result=await run(process.execPath,[cli,'prepare','--scope='+scope,'--progress',...options],{env,structured:true});
+    return result && {...result,reviewedNls};
   }
   if (command==='apply' && (!request.reportFile || !path.isAbsolute(request.reportFile))) throw new Error('请先准备本版本的汉化结果。');
   emit({type:'progress',message:command==='apply' ? '正在应用汉化' : command==='restore' ? '正在恢复原版' : '正在恢复中断的操作',busy:true});

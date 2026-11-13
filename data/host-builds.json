@@ -19,6 +19,26 @@
         "out/vs/workbench/devin-webapp-host/editor-mode-menu.js": "dac58f2457e7d9ba8f016817f4ce19aaf7ad7c90c2802bc4d54d8dee3b8acd8d",
         "out/vs/workbench/devin-webapp-host/index.js": "114393d653b4653f5acc0c3aff33efcd560e0acd2354c3119bb68e26341828d3"
       }
+    },
+    "0122b42e158c7ca62960222fb9725f087cd9544f": {
+      "version": "3.12.59",
+      "preserveChecksums": true,
+      "targets": [
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-BrcQkoLb.js",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-DY7u3YFK.js",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-ZdCSgxRT.js",
+        "out/vs/workbench/devin-webapp-host/assets/entry-host-editor-mode-menu-DkFgenhN.js"
+      ],
+      "files": {
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-BrcQkoLb.js": "b8ab9a76d7e34b0886938b6bc8b315f7e4ae2f19df89a736ccf8fc2e87cfa23e",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-DY7u3YFK.js": "1c4cc456a089ad723721ee3faa98ba7ede4442627f3e75e91abbe1195cf2ceee",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-Dn20KNgQ.js": "2b52462ae3a22a09e6fb549ee71a13f338bb0bd112de1d75909c6c78cf8418f5",
+        "out/vs/workbench/devin-webapp-host/assets/app-initial-ZdCSgxRT.js": "73d5995d57a805c5ed2f93cdf558630694caab529ff76951e44709dbffd02225",
+        "out/vs/workbench/devin-webapp-host/assets/entry-host-editor-mode-menu-DkFgenhN.js": "8be0496b300957ca1f6a2f507f326a4bfc81123a180d9f4519ad7816bc3490e8",
+        "out/vs/workbench/devin-webapp-host/assets/rolldown-runtime-C0FnF6B9.js": "e0a79ad36c6ca1ffbc796c80aa5661803a9d1bc684e29d1587f48b4ba9a82714",
+        "out/vs/workbench/devin-webapp-host/editor-mode-menu.js": "ce2e83daf84d7971df0a8b6ddca4df18244ef0ae449e942354a627c3c608d235",
+        "out/vs/workbench/devin-webapp-host/index.js": "fc8c101fc5296b055b574f1c067318ed531c4eecd6d905b0c5effce4cf2a9308"
+      }
     }
   }
 }

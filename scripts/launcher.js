@@ -188,18 +188,25 @@ async function main() {
         if (platform === 'win32' && ['1','2','3','4'].includes(choice)) require('./launcher-backups').importVerifiedBackup(root, {projectDir:ROOT,
           toolDirs:windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path)});
         if (choice === '1' || choice === '2') {
+          const options=[];
           if (choice === '2') {
-            const pack = await require('./language-pack').ensureLanguagePack({root,projectDir:ROOT,
-              toolDirs:platform==='win32'?windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path):[],
-              onProgress:event=>{if(event.phase==='local-search'||event.phase==='query'||event.phase==='ready')console.log(event.message);}});
-            env.DEVIN_ZH_PACK = pack.packFile;
+            try {
+              const pack = await require('./language-pack').ensureLanguagePack({root,projectDir:ROOT,
+                toolDirs:platform==='win32'?windowsHints().filter(hint=>hint.kind==='tool').map(hint=>hint.path):[],
+                onProgress:event=>{if(event.phase==='local-search'||event.phase==='query'||event.phase==='ready')console.log(event.message);}});
+              env.DEVIN_ZH_PACK = pack.packFile;
+            } catch (error) {
+              if(error.code!=='LANGUAGE_PACK_UNAVAILABLE') throw error;
+              options.push('--reviewed-nls');
+              console.log('微软暂无匹配语言包，编辑器菜单将使用人工词典。');
+            }
           }
           console.log('正在验证原版、备份并生成本版本补丁…大型客户端可能需要几分钟，请保持窗口打开。');
           const run = require('./gui-backend').createRunner({projectDir:ROOT,log:()=>{},emit:event=>{
             const counter=event.total>0?`[${event.completed}/${event.total}] `:'';
             if(process.stdout.isTTY){process.stdout.write('\r\x1b[2K'+counter+event.message);}else console.log(counter+event.message);
           }});
-          const plan = await run(process.execPath,[path.join(ROOT,'src/cli.js'),'prepare','--scope='+ (choice === '2' ? 'all' : 'web'),'--progress'],{env,structured:true});
+          const plan = await run(process.execPath,[path.join(ROOT,'src/cli.js'),'prepare','--scope='+ (choice === '2' ? 'all' : 'web'),'--progress',...options],{env,structured:true});
           console.log('');
           console.log('准备通过，报告：' + plan.reportFile);
           if (platform === 'darwin') {console.log('macOS 预览完成。官方 .app 没有修改。'); continue;}

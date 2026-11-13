@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
-// @version      1.0.18
+// @version      1.0.19
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @icon         data:image/png;base64,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
@@ -79,7 +79,7 @@ function mountDevinZh(win, dictionary, rules) {
     return placeholder && placeholder.closest(slateInput);
   }
   const own = (key) => Object.prototype.hasOwnProperty.call(dictionary, key);
-  const knownUiHref = href => /^\/(?:settings(?:\/|$)|org\/[^/]+\/(?:settings(?:\/|$)|customize(?:[?#]|$)|security(?:[?#]|$)|automations(?:[?#]|$)|wiki(?:[?#]|$))|review(?:[?#]|$))/.test(href || '');
+  const knownUiHref = href => /^\/(?:settings(?:\/|$)|org\/[^/]+\/(?:settings(?:\/|$)|customize(?:[?#]|$)|security(?:\/(?:new|overview|repositories|findings|red-teaming))?(?:[?#]|$)|automations(?:[?#]|$)|wiki(?:[?#]|$))|review(?:[?#]|$))/.test(href || '');
   function knownUiContainer(element) {
     const link = element.closest('a[href]');
     if (link && knownUiHref(link.getAttribute('href'))) return true;
@@ -102,12 +102,23 @@ function mountDevinZh(win, dictionary, rules) {
   const fixedSidebarGroups = new Set(['Sessions', 'Recent', 'Personal', 'Organization']);
   const fixedActionLabels = new Set(Array.from(fixedSidebarActions).flatMap(en => [en, dictionary[en]]).filter(Boolean));
   const fixedGroupLabels = new Set(Array.from(fixedSidebarGroups).flatMap(en => [en, dictionary[en]]).filter(Boolean));
+  const labelMatches = (label, keys) => keys.some(key => label === key || label === dictionary[key]);
+  function sidebarAction(element) {
+    if (!element.closest(sidebarContent)) return false;
+    const label = element.getAttribute('aria-label');
+    if (!label) return false;
+    if (element.matches('[data-slot="sidebar-label-row"] > button')) return labelMatches(label,['New','More','Folder options']);
+    if (element.matches('[data-slot="sidebar-label-row"] > a[href]') && /^\/org\/[^/?#]+\/?$/.test(element.getAttribute('href')))
+      return labelMatches(label,['New pinned session','New session in folder']);
+    if (element.matches('button[data-slot="sidebar-menu-action"]')) return labelMatches(label,['More']);
+    return element.matches('button') && !!element.closest('[data-slot="sidebar-menu-item"]') && labelMatches(label,['Expand children','Collapse children']);
+  }
   function userSidebarLeaf(element) {
     const content = element.closest(sidebarContent);
     if (!content) return false;
     // These are shared layout containers, not proof that their entire subtree
     // is user content. Keep walking them; classify only individual rows/leaves.
-    if (element.matches(sidebarContent) || knownUiContainer(element)) return false;
+    if (element.matches(sidebarContent) || knownUiContainer(element) || sidebarAction(element)) return false;
     // Unknown sidebar links can be user projects; leave the individual link
     // unchanged without rejecting its surrounding layout or fixed navigation.
     if (element.closest('a[href]')) return true;
@@ -146,7 +157,11 @@ function mountDevinZh(win, dictionary, rules) {
     return !!element && !blockedElement(element);
   }
   function pruneElement(element) {
-    if (element.matches(hardProtected) || userSidebarLeaf(element)) return true;
+    if (element.matches(hardProtected)) return true;
+    if (userSidebarLeaf(element)) {
+      queueSidebarActions(element);
+      return true;
+    }
     if (element.matches('[translate="no"]') && !element.matches(slateInput)) return true;
     // Keep the real Slate placeholder exception; never enter ordinary editors.
     if (element.matches('[contenteditable]:not([contenteditable="false"]), [role="textbox"]') &&
@@ -200,7 +215,7 @@ function mountDevinZh(win, dictionary, rules) {
     if (fileTab && !['tab:context', 'tab:computer', 'tab:changes', 'tab:code-changes'].includes(fileTab.getAttribute('data-flash-channel'))) return;
     const original = node.nodeValue;
     // Ordinary one-word values outside identified UI containers may be names.
-    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
+    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
     const next = translate(original);
     if (next !== original) { textWrites.set(node, next); node.nodeValue = next; }
   }
@@ -238,8 +253,16 @@ function mountDevinZh(win, dictionary, rules) {
     animationScheduled = typeof win.requestAnimationFrame === 'function';
     scheduled = animationScheduled ? win.requestAnimationFrame(flush) : win.setTimeout(flush, 16);
   };
+  function queueSidebarActions(row) {
+    if (!row.matches('[data-slot="sidebar-menu-item"], [data-slot="sidebar-menu-actions"]') || row.closest(hardProtected)) return;
+    for (const button of row.querySelectorAll('button[aria-label]')) if (sidebarAction(button)) enqueueAttributes(button);
+  }
   function enqueue(node) {
-    if (!node || !node.isConnected || disposed || !eligible(node)) return;
+    if (!node || !node.isConnected || disposed) return;
+    if (!eligible(node)) {
+      if(node.nodeType===1) queueSidebarActions(node);
+      return;
+    }
     for (let parent = node.parentElement; parent; parent = parent.parentElement) if (pending.has(parent)) return;
     // An ancestor can arrive after its children in one MutationObserver batch.
     // Keep only one traversal for that subtree regardless of arrival order.
@@ -313,7 +336,14 @@ function mountDevinZh(win, dictionary, rules) {
     }
     for (const mutation of mutations) {
       if (mutation.type === 'childList') {
-        if (!eligible(mutation.target)) { stats.ignoredMutations++; continue; }
+        if (!eligible(mutation.target)) {
+          for(const node of mutation.addedNodes) if(node.nodeType===1){
+            if(sidebarAction(node)) enqueueAttributes(node);
+            else queueSidebarActions(node);
+          }
+          stats.ignoredMutations++;
+          continue;
+        }
         for (const node of mutation.addedNodes) enqueue(node);
       } else if (mutation.type === 'characterData') {
         if (mutation.target.nodeValue === textWrites.get(mutation.target) || !eligible(mutation.target)) { stats.ignoredMutations++; continue; }
@@ -1628,6 +1658,38 @@ const dictionary = {
  "Assign ticket": "分配工单",
  "Toggle board agent": "切换看板智能体",
  "Open settings": "打开设置",
+ "Customizations": "自定义",
+ "No sessions": "没有会话",
+ "Reveal child sessions": "显示子会话",
+ "Create new account": "创建新账号",
+ "Set up your repos": "设置代码仓库",
+ "Devin has its own laptop with a browser and a terminal. Pick the main repos Devin will be working on — you can add more later.": "Devin 有独立的工作环境，配有浏览器和终端。请选择 Devin 主要使用的代码仓库，之后还可以添加。",
+ "Marketplace": "插件市场",
+ "View on GitHub": "在 GitHub 上查看",
+ "Myself": "我自己",
+ "Install plugins for": "安装插件，适用于",
+ "Install MCPs for": "添加 MCP 服务，适用于",
+ "Install hooks for": "安装钩子，适用于",
+ "Install rules for": "安装规则，适用于",
+ "Memory for": "记忆，适用于",
+ "Install plugins for Myself": "为自己安装插件",
+ "Install MCPs for Myself": "为自己添加 MCP 服务",
+ "Install hooks for Myself": "为自己安装钩子",
+ "Install rules for Myself": "为自己安装规则",
+ "Memory for Myself": "我的记忆",
+ "New hook": "新建钩子",
+ "New rule": "新建规则",
+ "Remove filter": "移除筛选条件",
+ "Add filters": "添加筛选条件",
+ "Start a scan": "开始扫描",
+ "Findings": "发现项",
+ "Red Teaming": "红队测试",
+ "Your security at a glance": "安全概况",
+ "No repositories with findings yet": "暂无发现问题的代码仓库",
+ "Know what needs fixing": "查看需要修复的问题",
+ "Red Teaming is not enabled for your account": "你的账号尚未启用红队测试",
+ "Talk to sales": "联系销售",
+ "Use ChatGPT plan": "使用 ChatGPT 套餐",
  "Customize": "自定义",
  "Customization": "自定义配置",
  "Local Settings": "本地设置",
@@ -2117,6 +2179,8 @@ const dictionary = {
 };
 const rules = [{pattern:/^Balances cost and intelligence with models like (.+)$/,replacement:"使用 $1 等模型，兼顾成本与智能水平。"},
 {pattern:/^Uses models like (.+)\.$/,replacement:"使用 $1 等模型。"},
+{pattern:/^View (.{1,100}) details$/,replacement:"查看 $1 的详情"},
+{pattern:/^Install for me (.{1,100})$/,replacement:"为自己安装 $1"},
 {pattern:/^(\d+)s\s+ago$/i,replacement:"$1 秒前"},
 {pattern:/^(\d+)m\s+ago$/i,replacement:"$1 分钟前"},
 {pattern:/^(\d+)h\s+ago$/i,replacement:"$1 小时前"},

@@ -264,7 +264,10 @@ public class DevinZhWindow : Form {
         }
         if(type=="prepared"){
             reportFile=TextOf(data,"reportFile");start.Text="应用汉化";stage.Text="汉化已准备好";steps.Text="准备完成";
-            bar.Style=ProgressBarStyle.Continuous;bar.Value=100;detail.Text="请保存工作并完全退出 Devin，再点击“应用汉化”。当前安装尚未修改。";return;
+            bar.Style=ProgressBarStyle.Continuous;bar.Value=100;
+            detail.Text=Flag(data,"reviewedNls")
+                ? "原生菜单使用人工词典。请保存工作并退出 Devin，再点击“应用汉化”。"
+                : "请保存工作并完全退出 Devin，再点击“应用汉化”。当前安装尚未修改。";return;
         }
         if(type=="done"||type=="checked"){
             ResetPlan();stage.Text=message;stage.ForeColor=Color.FromArgb(21,128,61);steps.Text="完成";bar.Style=ProgressBarStyle.Continuous;bar.Value=100;

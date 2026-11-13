@@ -1,4 +1,6 @@
 [
+  {"pattern":"^View (.{1,100}) details$","replacement":"查看 $1 的详情"},
+  {"pattern":"^Install for me (.{1,100})$","replacement":"为自己安装 $1"},
   {"pattern":"^(\\d+)s\\s+ago$","flags":"i","replacement":"$1 秒前"},
   {"pattern":"^(\\d+)m\\s+ago$","flags":"i","replacement":"$1 分钟前"},
   {"pattern":"^(\\d+)h\\s+ago$","flags":"i","replacement":"$1 小时前"},
