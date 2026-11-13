@@ -10,7 +10,7 @@ const C = require('../src/core');
 test('browser userscript shares reviewed Desktop/navigation translations and preserves upstream metadata identity',()=>{
   const {dictionary} = loadWebData();
   const built = buildUserscript();
-  for (const text of ['Wiki','New session','Cloud settings','Session info','Local Settings','Agent computer use','Require session access for PR comments','Add exclusion','Spanish','Create profile']) {
+  for (const text of ['Wiki','New session','Cloud settings','Session info','Local Settings','Agent computer use','Require session access for PR comments','Add exclusion','Spanish','Create profile','My Analytics','Git provider interaction','Reviewer finishes','Custom reviewers','Autoapprover']) {
     assert.equal(dictionary[text], C.loadDict().str(text));
   }
   assert.match(built.source,/\/\/ @name\s+Devin 网页端汉化/);
@@ -27,6 +27,15 @@ test('browser userscript shares reviewed Desktop/navigation translations and pre
   assert.doesNotMatch(built.source,/\/\/ @match\s+https:\/\/\*\./);
   assert.doesNotMatch(built.source,/GM_xmlhttpRequest|fetch\(|innerHTML\s*=/);
   assert.doesNotThrow(()=>new vm.Script(built.source));
+});
+test('review menu copy is bundled while shared model names stay untranslated',()=>{
+  const {dictionary} = loadWebData();
+  assert.equal(dictionary['Post findings to GitHub'], '将审查发现发布到 GitHub');
+  assert.equal(dictionary.Bug, '缺陷');
+  assert.equal(dictionary.Normal, 'Normal');
+  assert.equal(dictionary.Ultra, 'Ultra');
+  assert.equal(dictionary['**/REVIEW.md'], undefined);
+  assert.equal(dictionary['**/APPROVAL_POLICY.md'], undefined);
 });
 test('production script refuses unrelated sites before accessing document or APIs',()=>{
   const {source} = buildUserscript();

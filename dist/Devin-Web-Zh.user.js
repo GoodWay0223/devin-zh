@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Devin 网页端汉化
 // @namespace    https://github.com/KawaYiLab/Devin-Web-Chinese
-// @version      1.0.19
+// @version      1.0.20
 // @description  Devin 简体中文本地维护版：保护整个会话区域、低开销动态汉化、模型名保持英文
 // @author       KawaYiLab; GoodWay0223/devin-zh
 // @icon         data:image/png;base64,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
@@ -199,6 +199,25 @@ function mountDevinZh(win, dictionary, rules) {
       ? value.match(/^\s*/)[0] + next + value.match(/\s*$/)[0] : value;
   }
 
+  function reviewDisplayValue(parent, label) {
+    if ((label !== 'Normal' && label !== 'Ultra' && label !== 'Default') || !/^\/org\/[^/]+\/settings\/review\/?$/.test(win.location.pathname)) return;
+    if (label === 'Default') {
+      // The default context badge is a plain span, next to a fixed built-in rule file.
+      if (parent.matches('#main-content li > span') && Array.from(parent.parentElement.querySelectorAll('span')).some(span =>
+        !span.childElementCount && ['**/REVIEW.md', '**/APPROVAL_POLICY.md'].includes(span.textContent.trim()))) return dictionary.Default;
+      return;
+    }
+    // These names also appear in the model menu. Only translate the verified
+    // settings combobox and its matching portaled listbox, not other menus.
+    const control = doc.querySelector('#main-content #review-default-effort button[role="combobox"]');
+    if (!control) return;
+    const option = parent.closest('[role="option"]');
+    const list = option && option.closest('[role="listbox"]');
+    if (parent.closest('button[role="combobox"]') === control || (list?.id && list.id === control.getAttribute('aria-controls'))) {
+      return label === 'Normal' ? '标准' : '全面';
+    }
+  }
+
   function translateText(node) {
     const parent = node.parentElement;
     if (!parent || blockedElement(parent)) return;
@@ -214,9 +233,11 @@ function mountDevinZh(win, dictionary, rules) {
     const fileTab = parent.closest('[data-flash-channel^="tab:"]');
     if (fileTab && !['tab:context', 'tab:computer', 'tab:changes', 'tab:code-changes'].includes(fileTab.getAttribute('data-flash-channel'))) return;
     const original = node.nodeValue;
+    const label = original.trim();
+    const reviewValue = reviewDisplayValue(parent, label);
     // Ordinary one-word values outside identified UI containers may be names.
-    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
-    const next = translate(original);
+    if (reviewValue === undefined && /^[A-Za-z][A-Za-z-]*$/.test(label) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
+    const next = reviewValue === undefined ? translate(original) : original.match(/^\s*/)[0] + reviewValue + original.match(/\s*$/)[0];
     if (next !== original) { textWrites.set(node, next); node.nodeValue = next; }
   }
 
@@ -2048,6 +2069,53 @@ const dictionary = {
  "Reusable security restrictions for sessions": "可在会话中复用的安全限制",
  "No security profiles configured. Create one to get started.": "尚未配置安全配置。创建一个即可开始使用。",
  "Include a link to Devin Review in the pull request description": "在拉取请求描述中添加 Devin 代码审查的链接",
+ "My Analytics": "我的数据统计",
+ "Choose how Devin reviews pull requests, what it approves, and how reviews are billed.": "设置 Devin 如何审查拉取请求、批准哪些请求，以及如何收取审查费用。",
+ "Automatically review new PRs in selected repositories.": "自动审查所选代码仓库中新建的 PR。",
+ "Set up autoreview in your first repository": "为第一个代码仓库设置自动审查",
+ "Rules choose which pull requests Devin reviews automatically.": "通过规则指定 Devin 自动审查哪些拉取请求。",
+ "Add repositories or users": "添加代码仓库或用户",
+ "Post findings to GitHub": "将审查发现发布到 GitHub",
+ "Devin Review posts its findings as comments on your pull requests": "Devin 会以评论形式将审查发现发布到你的拉取请求中",
+ "Git provider interaction": "Git 平台交互",
+ "Let Devin Review edit the PR description": "允许 Devin 编辑 PR 描述",
+ "Off keeps your description untouched. On GitHub, Devin shows its link and status in one PR comment instead.": "关闭后，Devin 不会改动 PR 描述，而会在一条 GitHub PR 评论中显示审查链接和状态。",
+ "Post CI check": "发布 CI 检查结果",
+ "Posts a Devin Review commit status on the pull request for each review": "每次审查后，在拉取请求上发布 Devin Review 的提交状态",
+ "Passing condition": "检查通过条件",
+ "When the check turns green. To block merges on it, mark it as required in your repository's branch rules.": "设置检查何时通过。如需在检查未通过时阻止合并，请在代码仓库的分支规则中将其设为必需检查。",
+ "Reviewer finishes": "审查完成时",
+ "All comments are resolved": "所有评论均已解决时",
+ "There are no open findings": "没有未解决的审查发现时",
+ "Review effort": "审查力度",
+ "Pick your default price-performance tradeoff.": "选择默认的审查深度与费用组合。",
+ "Default effort level": "默认审查力度",
+ "By default, manual and automatic reviews run on this effort level.": "手动和自动审查默认都使用此档位。",
+ "An in-depth review with great price-performance.": "深入审查，兼顾效果与费用。",
+ "A very thorough review at a higher cost.": "审查更全面，费用也更高。",
+ "Files and instructions Devin reads when it reviews a pull request": "Devin 审查拉取请求时读取的文件和指令",
+ "Repository file": "仓库文件",
+ "Applies to all repositories": "适用于所有代码仓库",
+ "Common rule files": "常见规则文件",
+ "are also read": "也会一并读取",
+ "Custom reviewers": "自定义审查员",
+ "Each reviewer runs on the pull requests its rules match.": "每个审查员只审查符合自身规则的拉取请求。",
+ "No custom reviewers yet": "尚无自定义审查员",
+ "Custom reviewers check pull requests against your own instructions and run on the pull requests their rules match.": "自定义审查员按你提供的指令审查拉取请求，只处理符合自身规则的请求。",
+ "Add reviewer": "添加审查员",
+ "Archived reviewers": "已归档的审查员",
+ "Autoapprover": "自动批准",
+ "Autoapprover is for repositories that require an approving review before merging. It approves the enrolled pull requests that are safe to merge without a person, so reviewers only see the rest. Its approval counts as one approving review from Devin, not as a code owner review, and it never merges on its own.": "自动批准适用于合并前必须获得审查批准的代码仓库。它会批准纳入规则且无需人工审查即可合并的拉取请求，审查员只需查看其余请求。这计为 Devin 的一次批准，不计为代码所有者的批准，Devin 也不会自行合并。",
+ "Approvals": "批准记录",
+ "How Autoapprover decided the pull requests it evaluated": "自动批准对已评估拉取请求的处理结果",
+ "Autoapprover rules": "自动批准规则",
+ "Choose which pull requests Autoapprover evaluates. It runs on every push.": "选择要自动评估的拉取请求。每次推送都会触发评估。",
+ "No Autoapprover rules yet": "尚无自动批准规则",
+ "Rules choose which pull requests Autoapprover evaluates and approves on your behalf.": "通过规则指定自动批准会代表你评估和批准哪些拉取请求。",
+ "Instructions": "指令",
+ "Tell Autoapprover what your team approves without review and what always needs a human.": "指定团队允许自动批准哪些内容，以及哪些内容始终需要人工审查。",
+ "Add instructions": "添加指令",
+ "Stops auto-reviewing a PR once its review spend exceeds this limit.": "单个 PR 的审查费用超过此限额后，将停止对它进行自动审查。",
  "Bug": "缺陷",
  "Flags": "风险提示",
  "Notes": "备注",

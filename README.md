@@ -10,9 +10,9 @@
 
 | 入口 | 当前版本 | 使用方式 |
 | --- | --- | --- |
-| **网页油猴脚本** | **1.0.19** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
-| **Windows 客户端工具** | **1.0.19** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
-| **macOS 客户端预览** | **1.0.19** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
+| **网页油猴脚本** | **1.0.20** | 在 Tampermonkey 安装单文件脚本，刷新 Devin 网页 |
+| **Windows 客户端工具** | **1.0.20** | 双击 `汉化工具-Start-Windows.vbs`，按钮窗口、自动中文资源、步骤与下载进度 |
+| **macOS 客户端预览** | **1.0.20** | 双击 `汉化工具-Start-macOS.command`，资源自动准备，暂不写入 `.app` |
 
 三端共享一个发布版本，统一从 `package.json` 生成。此前分开编号的版本仍保留在更新记录中。
 
@@ -25,12 +25,12 @@
 适用于 `https://app.devin.ai/` 和 `https://app.beta.devin.ai/`。已在 Chrome 上检查，其他浏览器尚未实测。
 
 1. 安装并启用 [Tampermonkey](https://www.tampermonkey.net/)。
-2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-1.0.19.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
-3. 刷新 Devin 网页。若已有旧版汉化，先导出备份，在原脚本编辑器全选替换并保存；每个页面只启用一份汉化脚本。
+2. 打开 **[Devin-Web-Zh.user.js](https://raw.githubusercontent.com/GoodWay0223/devin-zh/master/dist/Devin-Web-Zh.user.js)**，在油猴安装页确认安装。也可在 Releases 下载 `Devin-Web-Zh-<版本号>.user.js`，把全文粘贴到油猴的新脚本编辑器后保存。
+3. 若已有旧版，在同一链接的油猴界面确认更新即可，无需另建脚本。安装后刷新 Devin 网页；每个页面只启用一份汉化脚本。
 
-覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。1.0.19 补齐文件夹操作、子会话开关、插件操作、筛选、账号菜单及安全子导航。构建包含 1,799 条精确词条和 106 条规则，校验值见 [构建报告](dist/build-report.json)。
+覆盖导航、菜单、模式、快捷键、自定义、自动化、审查、安全、知识库及多项组织/个人设置。1.0.20 补齐「我的数据统计」入口及代码审查设置。构建包含 1,846 条精确词条和 106 条规则，校验值见 [构建报告](dist/build-report.json)。
 
-`Normal`、`Agent`、`Fusion`、`Ultra`、`Lite` 及模型名称保留英文；只汉化能力和模式的介绍、快速模式与套餐等操作文案。模型介绍中列举的名字和版本保留，已确认的句式可在模型更新后继续复用。
+能力和模型菜单中的 `Normal`、`Agent`、`Fusion`、`Ultra`、`Lite` 及模型名称保留英文；只汉化介绍、快速模式和套餐等操作文案。「代码审查」设置的 `Normal` / `Ultra` 是审查档位，显示为「标准」/「全面」，原始选项值不变。模型介绍中列举的名字和版本仍保留。
 
 翻译在浏览器本地完成，脚本使用 `@grant none`，没有翻译服务请求。消息区域、已识别的会话行/空间卡片/用户文件树、侧栏用户名称和状态、代码、终端和输入草稿均受保护；PR 和自动化名称也不翻译。通用侧栏布局容器会继续遍历，固定导航、操作按钮和设置说明可以汉化。新页面或未知结构可能保留英文。
 
@@ -42,7 +42,7 @@
 
 ## 客户端：汉化本地 Agent 界面
 
-**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-1.0.19.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
+**Windows 快速开始**：下载 `Devin-Desktop-Zh-Windows-<版本号>.zip`，解压进入 `devin-zh`，双击 **`汉化工具-Start-Windows.vbs`** 打开按钮窗口。`汉化工具-Start-Windows.cmd` 是备用入口，两者选择一个即可，不用先后运行。默认【完整汉化】自动查找/下载匹配的编辑器中文资源，**不需要进 Devin 手动安装扩展或填写语言包路径**；依赖、安装定位及可信备份接续也自动处理。点【开始汉化】查看步骤进度，准备好后退出 Devin，再点【应用汉化】；恢复用【恢复原版】。首次需要 **Node.js 22.13+（推荐 24 LTS）**；窗口由 Windows 自带 .NET Framework 在本机生成。
 
 3.12.59 的汉化覆盖已核验的独立界面资源和原生菜单。应用时会在同一次事务中将旧补丁修改过的两个受检文件恢复成官方原版。其他已适配构建按原有范围处理。工具按官方安装包 SHA-256 清单识别构建，未知构建停止并提示等待适配。
 
@@ -54,7 +54,7 @@ Windows 工具启动时自动检查正式新版，右上角出现【更新至 v�
 
 按钮入口面向常规 Windows 10/11 环境，需要 PowerShell、Windows Script Host 和 .NET Framework 可用；系统禁止运行脚本或缺少组件时可能无法启动。Windows 支持下限也受 [Node.js 平台要求](https://github.com/nodejs/node/blob/v22.x/BUILDING.md#platform-list)限制，.NET 随系统提供的版本见 [Microsoft 文档](https://learn.microsoft.com/en-us/dotnet/framework/install/versions-and-dependencies)。工具会校验当前 Devin 的资源结构，未知版本不能保证直接应用；实机验证范围见下表。
 
-**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-1.0.19.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
+**macOS**：下载 `Devin-Desktop-Zh-macOS-Preview-<版本号>.zip`，双击 **`汉化工具-Start-macOS.command`**。终端入口自动准备中文资源并显示步骤，**暂不能直接安装客户端汉化**。官方 `.app` 内资源修改会影响签名；尚无实际 Mac 上的签名、登录及启动验收。详情见 [双击入口说明](START_HERE.md)。
 
 以下命令适用于想自行操作的 Windows 用户，需要正常工作的官方 Devin Desktop：
 
@@ -112,6 +112,8 @@ node src/cli.js status
 网页脚本与客户端共享导航/菜单和人工补充词典，但客户端本地 Agent 与内嵌云端网页属于不同来源；当前没有向客户端跨源网页注入油猴脚本。
 
 ## 验证记录
+
+1.0.20：在登录态 Chrome 核对代码审查设置、标签页及下拉选项，只读检查，未改变设置。独立浏览器 DOM 回归 88/88、项目回归 172/172；已在 Devin Desktop 3.12.59 执行兼容检查及补丁准备，未重新应用。新版脚本尚未替换实际安装的油猴脚本。
 
 2026-11-13，3.12.59 / VS Code 1.141.2 已在 Windows 应用并重启。官方校验 12/12 通过，原生通知未设为静音，启动未出现损坏提示。已检查首页、会话列表和能力菜单。匹配的微软语言包暂不可用，人工词典覆盖 1,821 / 27,543 条原生文本。登录态 Chrome 用于定位网页漏翻，独立 Chrome 验证页 81/81 通过，项目回归 171/171 通过。
 

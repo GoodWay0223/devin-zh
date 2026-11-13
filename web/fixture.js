@@ -31,6 +31,7 @@ function buildFixture() {
 <div data-slot="sidebar-group-label" id="settings-personal">Personal</div><div data-slot="sidebar-group-label" id="settings-org">Organization</div>
 <ul><li data-slot="sidebar-menu-item"><a href="/org/example/settings/general" aria-label="General"></a><div><span id="settings-general">General</span></div></li>
 <li data-slot="sidebar-menu-item"><a href="/settings/preferences"></a><span id="settings-preferences">Preferences</span></li>
+<li data-slot="sidebar-menu-item"><a id="analytics-link" href="/settings/my-analytics" aria-label="My Analytics"></a><span id="analytics-label">My Analytics</span></li>
 <li data-slot="sidebar-menu-item"><a href="/sessions/abcd1234"></a><span id="settings-session-name">Review</span></li>
 <li data-slot="sidebar-menu-item"><a href="/org/example/settings/general"></a><a href="/sessions/abcd1234"></a><span id="settings-ambiguous">Review</span></li></ul>
 <div role="combobox" id="settings-agent">Normal</div><input id="settings-agent-value" type="hidden" value="normal">
@@ -40,6 +41,16 @@ function buildFixture() {
 <label id="settings-language">Spanish<input id="settings-language-value" type="checkbox" value="es"></label>
 <div translate="no" data-devin-input-box="true" data-slate-editor="true" contenteditable="true" role="textbox" aria-label="Prompt" id="real-prompt"><div><span data-slate-placeholder="true" contenteditable="false" id="real-placeholder">Ask Devin to build features, fix bugs, or work on your code</span><span id="real-draft">Review</span><code id="real-code">Save</code></div></div>
 <div translate="no" contenteditable="true"><span data-slate-placeholder="true" contenteditable="false" id="unknown-placeholder">Ask Devin to build features, fix bugs, or work on your code</span></div>
+</section><section id="main-content"><h2>Review settings</h2>
+<div role="tablist"><button role="tab" id="custom-reviewers">Custom reviewers</button><button role="tab" id="autoapprover">Autoapprover</button></div>
+<h3 id="post-findings">Post findings to GitHub</h3><p id="post-findings-description">Devin Review posts its findings as comments on your pull requests</p>
+<h4 id="review-bug">Bug</h4><button id="review-bug-switch" role="switch" aria-checked="true" aria-label="Bug"></button>
+<h3 id="provider-interaction">Git provider interaction</h3><h4 id="post-ci">Post CI check</h4>
+<button id="passing-condition" role="combobox" aria-label="Passing condition"><span>Reviewer finishes</span></button>
+<h3 id="review-effort">Review effort</h3><div id="review-default-effort"><button id="effort-choice" role="combobox" aria-label="Default effort level"><span id="selected-effort">Normal</span></button><input id="effort-value" type="hidden" value="normal"></div>
+<p id="review-context-description">Files and instructions Devin reads when it reviews a pull request</p>
+<ul><li><div><span id="review-file">**/REVIEW.md</span><span id="review-file-description">Repository file<!-- React splits the label and separator into separate text nodes. --> · <span>Applies to all repositories</span> · <span>Common rule files</span> are also read</span></div><span id="review-default-badge">Default</span></li>
+<li><div><span>my-team.md</span></div><span id="unknown-default-value">Default</span></li></ul>
 </section><section id="session-sidebar-fixture"><h2>会话区域保护和流式性能</h2>
 <aside data-slot="sidebar"><div data-slot="sidebar-header"><button id="fixed-new-session">New session</button><a id="fixed-review" href="/review">Review</a></div>
 <div data-slot="sidebar-content-wrapper"><div data-slot="sidebar-content" id="user-session-content">
@@ -120,6 +131,19 @@ check('电脑操作标题与完整说明',el('settings-use').textContent==='智�
 check('权限文案翻译不改权限状态',el('settings-pr-access').textContent==='处理 PR 评论时要求会话访问权限'&&!el('settings-pr-toggle').checked);
 check('排除规则说明保留优先级',el('settings-exclusion').textContent.includes('即使它同时匹配自动审查规则'));
 check('语言显示与选项值分离',el('settings-language').textContent==='西班牙语'&&el('settings-language-value').value==='es'&&!el('settings-language-value').checked);
+check('个人统计导航及无障碍标签汉化，链接不变',el('analytics-label').textContent==='我的数据统计'&&el('analytics-link').getAttribute('aria-label')==='我的数据统计'&&el('analytics-link').getAttribute('href')==='/settings/my-analytics');
+check('审查设置与 GitHub 发布文案汉化',el('post-findings').textContent==='将审查发现发布到 GitHub'&&el('post-findings-description').textContent.includes('评论形式')&&el('provider-interaction').textContent==='Git 平台交互'&&el('post-ci').textContent==='发布 CI 检查结果');
+check('审查页缺陷标题及开关说明汉化，启用状态不变',el('review-bug').textContent==='缺陷'&&el('review-bug-switch').getAttribute('aria-label')==='缺陷'&&el('review-bug-switch').getAttribute('aria-checked')==='true');
+check('审查检查条件和其它标签页汉化',el('passing-condition').textContent==='审查完成时'&&el('passing-condition').getAttribute('aria-label')==='检查通过条件'&&el('custom-reviewers').textContent==='自定义审查员'&&el('autoapprover').textContent==='自动批准');
+check('闭合下拉框审查档位翻译，保留内部值',el('review-effort').textContent==='审查力度'&&el('selected-effort').textContent==='标准'&&el('effort-value').value==='normal'&&el('effort-choice').getAttribute('aria-label')==='默认审查力度');
+check('只翻译内置上下文标签，不翻译规则文件名和未知值',el('review-file').textContent==='**/REVIEW.md'&&el('review-default-badge').textContent==='默认'&&el('unknown-default-value').textContent==='Default'&&el('review-file-description').textContent==='仓库文件 · 适用于所有代码仓库 · 常见规则文件 也会一并读取'&&el('review-context-description').textContent.includes('拉取请求'));
+const reviewList=document.createElement('div');reviewList.id='review-effort-options';reviewList.setAttribute('role','listbox');
+el('effort-choice').setAttribute('aria-controls',reviewList.id);
+const addOption=(parent,label,value,selected)=>{const option=document.createElement('div');option.setAttribute('role','option');option.setAttribute('aria-selected',String(selected));option.dataset.value=value;option.textContent=label;parent.append(option);return option};
+const normalEffort=addOption(reviewList,'Normal','normal',true),ultraEffort=addOption(reviewList,'Ultra','ultra',false);
+const unrelatedList=document.createElement('div');unrelatedList.id='unrelated-options';unrelatedList.setAttribute('role','listbox');const unrelatedUltra=addOption(unrelatedList,'Ultra','ultra',true);
+document.body.append(reviewList,unrelatedList);await wait();
+check('仅翻译与审查力度控件关联的动态下拉选项',normalEffort.textContent==='标准'&&ultraEffort.textContent==='全面'&&unrelatedUltra.textContent==='Ultra'&&normalEffort.dataset.value==='normal'&&ultraEffort.getAttribute('aria-selected')==='false');
 check('真实禁翻输入框的固定占位提示',el('real-placeholder').textContent==='让 Devin 开发功能、修复缺陷或处理你的代码'&&el('real-prompt').getAttribute('aria-label')==='提示词');
 check('真实输入框草稿及代码保护',el('real-draft').textContent==='Review'&&el('real-code').textContent==='Save');
 check('未知禁翻输入结构保留原文',el('unknown-placeholder').textContent==='Ask Devin to build features, fix bugs, or work on your code');

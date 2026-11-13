@@ -152,6 +152,25 @@ function mountDevinZh(win, dictionary, rules) {
       ? value.match(/^\s*/)[0] + next + value.match(/\s*$/)[0] : value;
   }
 
+  function reviewDisplayValue(parent, label) {
+    if ((label !== 'Normal' && label !== 'Ultra' && label !== 'Default') || !/^\/org\/[^/]+\/settings\/review\/?$/.test(win.location.pathname)) return;
+    if (label === 'Default') {
+      // The default context badge is a plain span, next to a fixed built-in rule file.
+      if (parent.matches('#main-content li > span') && Array.from(parent.parentElement.querySelectorAll('span')).some(span =>
+        !span.childElementCount && ['**/REVIEW.md', '**/APPROVAL_POLICY.md'].includes(span.textContent.trim()))) return dictionary.Default;
+      return;
+    }
+    // These names also appear in the model menu. Only translate the verified
+    // settings combobox and its matching portaled listbox, not other menus.
+    const control = doc.querySelector('#main-content #review-default-effort button[role="combobox"]');
+    if (!control) return;
+    const option = parent.closest('[role="option"]');
+    const list = option && option.closest('[role="listbox"]');
+    if (parent.closest('button[role="combobox"]') === control || (list?.id && list.id === control.getAttribute('aria-controls'))) {
+      return label === 'Normal' ? '标准' : '全面';
+    }
+  }
+
   function translateText(node) {
     const parent = node.parentElement;
     if (!parent || blockedElement(parent)) return;
@@ -167,9 +186,11 @@ function mountDevinZh(win, dictionary, rules) {
     const fileTab = parent.closest('[data-flash-channel^="tab:"]');
     if (fileTab && !['tab:context', 'tab:computer', 'tab:changes', 'tab:code-changes'].includes(fileTab.getAttribute('data-flash-channel'))) return;
     const original = node.nodeValue;
+    const label = original.trim();
+    const reviewValue = reviewDisplayValue(parent, label);
     // Ordinary one-word values outside identified UI containers may be names.
-    if (/^[A-Za-z][A-Za-z-]*$/.test(original.trim()) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
-    const next = translate(original);
+    if (reviewValue === undefined && /^[A-Za-z][A-Za-z-]*$/.test(label) && !knownUiContainer(parent) && !parent.closest('button, nav, header, footer, h1, h2, h3, h4, h5, h6, label, th, [data-slot="sidebar-group-label"], [role="button"], [role="combobox"], [role="menu"], [role="menuitem"], [role="menuitemcheckbox"], [role="menuitemradio"], [role="tab"], [role="tablist"], [role="option"], [role="tooltip"], [role="status"], [role="alert"]')) return;
+    const next = reviewValue === undefined ? translate(original) : original.match(/^\s*/)[0] + reviewValue + original.match(/\s*$/)[0];
     if (next !== original) { textWrites.set(node, next); node.nodeValue = next; }
   }
 

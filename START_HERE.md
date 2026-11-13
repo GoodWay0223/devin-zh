@@ -2,7 +2,7 @@
 
 ## Windows：双击启动
 
-下载 `Devin-Desktop-Zh-Windows-1.0.19.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `汉化工具-Start-Windows.vbs`（推荐）** 打开按钮窗口。
+下载 `Devin-Desktop-Zh-Windows-<版本号>.zip`，解压到长期保留的文件夹，进入 `devin-zh`，**双击 `汉化工具-Start-Windows.vbs`（推荐）** 打开按钮窗口。
 
 `汉化工具-Start-Windows.cmd` 是备用入口，会打开同一个窗口；**二者选一个运行，不需要先运行 CMD 再运行 VBS**。VBS 是正式启动入口，并非需要忽略的附属文件。保留两个文件，CMD 会调用同目录的 VBS。源码中的旧英文入口仅用于兼容旧快捷方式。
 
@@ -33,7 +33,7 @@
 
 ## macOS：双击预览入口
 
-下载 `Devin-Desktop-Zh-macOS-Preview-1.0.19.zip`，解压后进入 `devin-zh`，**双击 `汉化工具-Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
+下载 `Devin-Desktop-Zh-macOS-Preview-<版本号>.zip`，解压后进入 `devin-zh`，**双击 `汉化工具-Start-macOS.command`**。同样先安装 Node.js 22.13+，支持 Apple Silicon / Intel 对应的 Node 安装。此入口保留终端菜单，完整准备会自动取得匹配的中文资源，并显示步骤。
 
 包内 `assets/devin-zh.icns` 提供同款图标素材；当前终端预览入口不会自动改变 Finder 或官方应用的图标。
 
@@ -47,7 +47,7 @@
 
 ## 更新与保留备份
 
-**从 1.0.17 或更早版本升级时，先手动下载当前 Windows Release 附件。** 请选 `Devin-Desktop-Zh-Windows-1.0.19.zip`，不要选 GitHub 自动生成的 `Source code (zip)`；只有正式发行包带有原地更新所需的文件清单。
+**从 1.0.17 或更早版本升级时，先手动下载当前 Windows Release 附件。** 请选 `Devin-Desktop-Zh-Windows-<版本号>.zip`，不要选 GitHub 自动生成的 `Source code (zip)`；只有正式发行包带有原地更新所需的文件清单。
 
 以后启动 Windows 窗口时，会在后台检查本项目 GitHub 的正式新版。右上角显示【更新至 v…】后点击，工具会下载、校验、备份并更新，然后重新打开。检查失败可以点击重试，不影响继续汉化；本地版本较新时不会降级。
 
