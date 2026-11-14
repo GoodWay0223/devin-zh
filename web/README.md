@@ -1,6 +1,6 @@
 # Devin 网页油猴汉化
 
-统一版本 **1.0.20**，网页脚本与桌面工具同号，均由 `package.json.version` 生成。本次补齐「我的数据统计」和代码审查设置，包含 GitHub 评论、CI 通过条件、审查力度、上下文、自定义审查员、自动批准及计费。审查力度中的 `Normal` / `Ultra` 显示为「标准」/「全面」，模型菜单里的同名选项仍保留英文。脚本内嵌与桌面工具同款的 `@icon` / `@icon64`，无需外部图片请求。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
+统一版本 **1.0.21**，网页脚本与桌面工具同号，均由 `package.json.version` 生成。1.0.21 保留 Thought、Thoughts 和 Thinking 等会话状态标签的英文。1.0.20 补齐「我的数据统计」和代码审查设置，包含 GitHub 评论、CI 通过条件、审查力度、上下文、自定义审查员、自动批准及计费。审查力度中的 `Normal` / `Ultra` 显示为「标准」/「全面」，模型菜单里的同名选项仍保留英文。脚本内嵌与桌面工具同款的 `@icon` / `@icon64`，无需外部图片请求。基于 KawaYiLab / Devin-Web-Chinese 1.0.7（MIT），不可变原始副本在 `upstream/Devin-Web-Chinese-1.0.7.user.js`，完整许可在根目录 `LICENSES/`。原始文件 SHA-256 为 `6e050815196d41a7b0f77db7c95b3fb8748490331763a1e14b3b648dc280bbe2`。构建前核对原始文件；不执行该旧脚本。
 
 ## 首次安装
 

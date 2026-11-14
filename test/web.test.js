@@ -43,6 +43,17 @@ test('production script refuses unrelated sites before accessing document or API
     assert.doesNotThrow(()=>vm.runInNewContext(source,{location},{timeout:1000}));
   }
 });
+test('reasoning status labels stay in English in both translation paths',()=>{
+  const {dictionary}=loadWebData();
+  const desktop=C.loadDict();
+  for (const [key,label] of [['transcript.thoughts','Thoughts'],['progress.thought','Thought'],
+    ['transcript.thinking','Thinking'],['transcript.thinking','Thinking...'],['transcript.thinking','Thinking…']]) {
+    assert.equal(dictionary[label],label);
+    assert.equal(desktop.str(label),label);
+    assert.equal(desktop.resolveI18n(key,label),label);
+  }
+  assert.equal(dictionary['Thinking effort'],'思考强度');
+});
 test('reviewed settings descriptions preserve providers, model names and retention number',()=>{
   const {dictionary} = loadWebData();
   for (const provider of ['Anthropic','OpenAI']) {
